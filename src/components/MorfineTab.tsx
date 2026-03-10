@@ -1,0 +1,388 @@
+import { useMemo, useState } from "react";
+import { morfineConcentrations, productText } from "../data/concentrationOptions";
+import {
+  localAssumptionText,
+  morfineGuidelinePanelText,
+  opioidConversionTableHeader
+} from "../data/guidelineText";
+import { opioidDisplayNames, opioidToMorphineScIvTable } from "../data/opioidRotationTable";
+import { computeMorfineSuggestionBundle } from "../domain/dosageSuggestions/morfineSuggestions";
+import { formatMedicalNumber } from "../domain/format/numberFormat";
+import { ExistingOpioidEntry, MorfineFormData, OpioidKind } from "../types/models";
+import { FormField } from "./FormField";
+import { GuidelinePanel } from "./GuidelinePanel";
+import { WarningBanner } from "./WarningBanner";
+
+interface MorfineTabProps {
+  data: MorfineFormData;
+  onChange: (data: MorfineFormData) => void;
+  showMlPerHour: boolean;
+  onDiagnosisUserChange?: () => void;
+  onDiagnosisBlur?: () => void;
+}
+
+const opioidOptions: { value: OpioidKind; label: string }[] = [
+  { value: "morfine_oral", label: "Morfine oraal" },
+  { value: "morfine_sciv", label: "Morfine s.c./i.v." },
+  { value: "oxycodon_oral", label: "Oxycodon oraal" },
+  { value: "oxycodon_sciv", label: "Oxycodon s.c./i.v." },
+  { value: "hydromorfon_oral", label: "Hydromorfon oraal" },
+  { value: "hydromorfon_sciv", label: "Hydromorfon s.c./i.v." },
+  { value: "fentanyl_patch", label: "Fentanyl pleister (mcg/uur)" },
+  { value: "buprenorfine_patch", label: "Buprenorfine pleister (mcg/uur)" },
+  { value: "tramadol_oral", label: "Tramadol oraal" },
+  { value: "tapentadol_oral", label: "Tapentadol oraal" },
+  { value: "methadon_oral", label: "Methadon oraal" }
+];
+
+export function MorfineTab({
+  data,
+  onChange,
+  showMlPerHour,
+  onDiagnosisUserChange,
+  onDiagnosisBlur
+}: MorfineTabProps) {
+  const bundle = computeMorfineSuggestionBundle(data);
+  const [opioidQuery, setOpioidQuery] = useState("");
+  const [pendingOpioid, setPendingOpioid] = useState<OpioidKind | "">("");
+  const [pendingDose, setPendingDose] = useState("");
+
+  const conversionTableRows = [30, 60, 120, 180, 240, 360, 480].map((morphineOralDose) => {
+    const getMatch = (opioid: OpioidKind) =>
+      opioidToMorphineScIvTable
+        .find((row) => row.opioid === opioid)
+        ?.points.find((point) => point.yMorphineScIvMgPer24h === morphineOralDose / 3)?.xDose;
+
+    return [
+      String(morphineOralDose),
+      String(morphineOralDose / 3),
+      String(getMatch("fentanyl_patch") ?? "-"),
+      String(getMatch("oxycodon_oral") ?? "-"),
+      String(getMatch("hydromorfon_oral") ?? "-")
+    ];
+  });
+
+  const filteredOpioids = useMemo(() => {
+    const needle = opioidQuery.trim().toLowerCase();
+    if (!needle) {
+      return opioidOptions;
+    }
+    return opioidOptions.filter((option) =>
+      option.label.toLowerCase().startsWith(needle)
+    );
+  }, [opioidQuery]);
+
+  const unitForOpioid = (opioid: OpioidKind): string =>
+    opioid === "fentanyl_patch" || opioid === "buprenorfine_patch" ? "mcg/uur" : "mg/24u";
+
+  const lockoutForExistingHours = data.ageOver70 || data.egfrUnder30 ? 6 : 4;
+  const convertedItems = bundle.conversion.items.filter(
+    (item) => !Number.isNaN(item.morphineScIvMgPer24h)
+  );
+  const conversionSumExpression = convertedItems
+    .map((item) => formatMedicalNumber(item.morphineScIvMgPer24h))
+    .join("+");
+
+  const applyCalculated24h = (targetMgPer24h: number) => {
+    const bolus = targetMgPer24h / 6;
+    onChange({
+      ...data,
+      continueDoseMgPer24h: formatMedicalNumber(targetMgPer24h),
+      startBolusMg: formatMedicalNumber(bolus),
+      bolusMg: formatMedicalNumber(bolus),
+      lockoutHours: formatMedicalNumber(lockoutForExistingHours)
+    });
+  };
+
+  const applyAdvice = () => {
+    onChange({
+      ...data,
+      continueDoseMgPer24h: formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h),
+      startBolusMg: formatMedicalNumber(bundle.suggestions.startBolusMg),
+      bolusMg: formatMedicalNumber(bundle.suggestions.bolusMg),
+      lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
+    });
+  };
+
+  const addPendingOpioid = () => {
+    if (!pendingOpioid || !pendingDose.trim()) {
+      return;
+    }
+    const dose = Number(pendingDose);
+    if (!Number.isFinite(dose) || dose <= 0) {
+      return;
+    }
+    const entry: ExistingOpioidEntry = {
+      id: crypto.randomUUID(),
+      opioid: pendingOpioid,
+      dosePer24h: dose,
+      methadoneRatioChoice: 5
+    };
+    onChange({ ...data, existingOpioids: [...data.existingOpioids, entry] });
+    setPendingOpioid("");
+    setPendingDose("");
+    setOpioidQuery("");
+  };
+
+  return (
+    <section className="card">
+      <h2>Morfine</h2>
+      <div className="grid-2">
+        <FormField label="Diagnose / ziektebeeld">
+          <input
+            value={data.diagnosis}
+            onChange={(event) => {
+              onDiagnosisUserChange?.();
+              onChange({ ...data, diagnosis: event.target.value });
+            }}
+            onBlur={onDiagnosisBlur}
+          />
+        </FormField>
+        <FormField label="Indicatie / refractair symptoom">
+          <input value={data.indication} onChange={(event) => onChange({ ...data, indication: event.target.value })} />
+        </FormField>
+        <FormField label="Startdatum">
+          <input type="date" value={data.startDate} onChange={(event) => onChange({ ...data, startDate: event.target.value })} />
+        </FormField>
+      </div>
+
+      <h3>Pompinstellingen</h3>
+      <div className="grid-2">
+        <FormField label="Concentratie">
+          <select
+            value={data.concentrationMgPerMl}
+            onChange={(event) =>
+              onChange({
+                ...data,
+                concentrationMgPerMl: Number(event.target.value) as 1 | 10 | 20
+              })
+            }
+          >
+            {morfineConcentrations.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      </div>
+
+      <div className="stack">
+        <span className="form-label">Opioïdstatus</span>
+        <label className="checkbox-line">
+          <input
+            type="radio"
+            name="opioid-input-mode"
+            checked={data.opioidInputMode === "naive"}
+            onChange={() => onChange({ ...data, opioidInputMode: "naive" })}
+          />
+          Opioïd-naïef
+        </label>
+        <label className="checkbox-line">
+          <input
+            type="radio"
+            name="opioid-input-mode"
+            checked={data.opioidInputMode === "existing"}
+            onChange={() => onChange({ ...data, opioidInputMode: "existing" })}
+          />
+          Reken om vanuit bestaande dosering
+        </label>
+      </div>
+
+      <div className="stack">
+        <label className="checkbox-line">
+          <input
+            type="checkbox"
+            checked={data.ageOver70}
+            onChange={(event) => onChange({ ...data, ageOver70: event.target.checked })}
+          />
+          &gt;70 jaar
+        </label>
+        <label className="checkbox-line">
+          <input
+            type="checkbox"
+            checked={data.egfrUnder30}
+            onChange={(event) => onChange({ ...data, egfrUnder30: event.target.checked })}
+          />
+          Slechte nierfunctie (eGFR &lt;30)
+        </label>
+      </div>
+
+      {data.opioidInputMode === "existing" ? (
+        <>
+          <h3>Actuele opioïden</h3>
+          <div className="opioid-picker">
+            <div className="opioid-picker-inputs">
+              <input
+                placeholder="Zoek opioïd"
+                value={opioidQuery}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setOpioidQuery(value);
+                  const exact = opioidOptions.find((option) => option.label === value);
+                  setPendingOpioid(exact ? exact.value : "");
+                }}
+              />
+              <input
+                type="number"
+                placeholder="Dosering"
+                value={pendingDose}
+                onChange={(event) => setPendingDose(event.target.value)}
+                disabled={!pendingOpioid}
+              />
+              <span className="small-muted">
+                {pendingOpioid ? unitForOpioid(pendingOpioid) : "mg/24u"}
+              </span>
+              <button type="button" onClick={addPendingOpioid}>
+                OK
+              </button>
+            </div>
+            {opioidQuery.trim() ? (
+              <div className="opioid-suggestions">
+                {filteredOpioids.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setPendingOpioid(option.value);
+                      setOpioidQuery(option.label);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="opioid-chip-list">
+            {data.existingOpioids.map((entry) => (
+              <span className="opioid-chip" key={entry.id}>
+                {opioidDisplayNames[entry.opioid]} {formatMedicalNumber(entry.dosePer24h)} {unitForOpioid(entry.opioid)}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      ...data,
+                      existingOpioids: data.existingOpioids.filter((item) => item.id !== entry.id)
+                    })
+                  }
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {data.opioidInputMode ? (
+        <div className="conversion-summary">
+          {data.opioidInputMode === "naive" ? (
+            <p>
+              Opioïd-naïef{data.ageOver70 ? " en >70 jaar" : ""}
+              {data.egfrUnder30 ? " met eGFR <30" : ""}. Advies: {formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)} mg/24u,
+              startdosis {formatMedicalNumber(bundle.suggestions.startBolusMg)} mg, zo nodig bolus {formatMedicalNumber(bundle.suggestions.bolusMg)} mg,
+              lockout {formatMedicalNumber(bundle.suggestions.lockoutHours)} uur.
+            </p>
+          ) : (
+            <>
+              {convertedItems.map((item) => (
+                <p key={`eq-${item.opioid}-${item.sourceDose}`}>
+                  {opioidDisplayNames[item.opioid]} {formatMedicalNumber(item.sourceDose)} {item.sourceUnit} ↔ morfine s.c.{" "}
+                  {formatMedicalNumber(item.morphineScIvMgPer24h)} mg/24u
+                </p>
+              ))}
+              <p>
+                100%: morfine ({conversionSumExpression || "0"}=){formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h)} mg/24u,
+                bolus ({formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h)}÷6=)
+                {formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h / 6)} mg
+              </p>
+              <p>
+                75% richtlijnadvies: {formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h)} mg/24u,
+                bolus ({formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h)}÷6=)
+                {formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h / 6)} mg
+              </p>
+              {bundle.conversion.items
+                .filter((item) => item.usedInterpolation && item.interpolationNote)
+                .map((item) => (
+                  <p key={item.opioid + item.sourceDose} className="small-muted">
+                    Interpolatie: {item.interpolationNote}
+                  </p>
+                ))}
+            </>
+          )}
+          {data.opioidInputMode === "existing" ? (
+            <div className="segment">
+              <button
+                type="button"
+                onClick={() => applyCalculated24h(bundle.conversion.advice75PercentMgPer24h)}
+              >
+                75% overnemen (richtlijn)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyCalculated24h(bundle.conversion.advice100PercentMgPer24h)}
+              >
+                100% overnemen
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={applyAdvice}>
+              Advies overnemen
+            </button>
+          )}
+          <WarningBanner warnings={bundle.warnings} />
+        </div>
+      ) : null}
+      <div className="grid-2">
+        <FormField label="Continue dosis (mg/24u)">
+          <input value={data.continueDoseMgPer24h} onChange={(event) => onChange({ ...data, continueDoseMgPer24h: event.target.value })} />
+        </FormField>
+        <FormField label="Startbolus (mg)">
+          <input value={data.startBolusMg} onChange={(event) => onChange({ ...data, startBolusMg: event.target.value })} />
+        </FormField>
+        <FormField label="Bolus (mg)">
+          <input value={data.bolusMg} onChange={(event) => onChange({ ...data, bolusMg: event.target.value })} />
+        </FormField>
+        <FormField label="Lockout (uur)">
+          <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
+        </FormField>
+      </div>
+      {showMlPerHour ? (
+        <p className="small-muted">
+          ml/uur = (mg/24u / 24) / concentratie. Product: {productText.morfine}.
+        </p>
+      ) : null}
+
+      <div className="stack">
+        <label className="checkbox-line">
+          <input
+            type="checkbox"
+            checked={data.escalation50PercentAgreement}
+            onChange={(event) => onChange({ ...data, escalation50PercentAgreement: event.target.checked })}
+          />
+          Akkoord met 50% ophoogbeleid
+        </label>
+      </div>
+
+      <FormField label="Advies voortzetten/stoppen opioïden en PRN">
+        <textarea value={data.continuationAdvice} onChange={(event) => onChange({ ...data, continuationAdvice: event.target.value })} />
+      </FormField>
+      <FormField label="Afwijkend ophoogbeleid / opmerkingen">
+        <textarea value={data.remarks} onChange={(event) => onChange({ ...data, remarks: event.target.value })} />
+      </FormField>
+      <FormField label="Specifieke problemen / bijwerkingen">
+        <textarea value={data.sideEffects} onChange={(event) => onChange({ ...data, sideEffects: event.target.value })} />
+      </FormField>
+
+      <GuidelinePanel
+        title="Morfine en opioïdrotatie"
+        lines={morfineGuidelinePanelText}
+        tableHeader={opioidConversionTableHeader}
+        tableRows={conversionTableRows}
+      />
+      <GuidelinePanel title="Toelichting lokale aannames" lines={localAssumptionText} />
+    </section>
+  );
+}
