@@ -1,5 +1,6 @@
 :root {
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  font-optical-sizing: auto;
   color: #1f2937;
   background: #f5f7fb;
 }
@@ -17,6 +18,30 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1rem 1rem 2rem;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.app-brand-logo {
+  width: 180px;
+  max-width: 42vw;
+  height: auto;
+}
+
+.app-brand h1 {
+  margin: 0;
+}
+
+.app-brand-subtitle {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #334155;
+  margin-top: 11px;
 }
 
 .card {
@@ -38,6 +63,7 @@ body {
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
 }
 
 .segment button:hover {
@@ -63,6 +89,15 @@ body {
 }
 
 .form-label {
+  font-weight: 600;
+}
+
+h1,
+h2 {
+  font-weight: 700;
+}
+
+h3 {
   font-weight: 600;
 }
 

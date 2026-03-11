@@ -68,7 +68,10 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <h1>Pallsedatie.nl - Uitvoeringsverzoek generator</h1>
+      <header className="app-brand">
+        <img src="/pallsedatie-logo.svg" alt="Pallsedatie logo" className="app-brand-logo" />
+        <h1 className="app-brand-subtitle">uitvoeringsverzoek generator</h1>
+      </header>
       <section className="card">
         <div className="segment">
           <button type="button" className={activeTab === "algemeen" ? "active" : ""} onClick={() => setActiveTab("algemeen")}>

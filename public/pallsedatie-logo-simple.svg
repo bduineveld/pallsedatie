@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="201.22559pt"
+   height="217.79295pt"
+   viewBox="0 0 201.22559 217.79295"
+   version="1.1"
+   id="svg18"
+   sodipodi:docname="pallsedatie-logo-simple.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs18" />
+  <sodipodi:namedview
+     id="namedview18"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="pt"
+     inkscape:zoom="0.60352669"
+     inkscape:cx="96.101798"
+     inkscape:cy="-63.791711"
+     inkscape:current-layer="svg18" />
+  <g
+     id="#e8bf49fd"
+     transform="matrix(0.51633801,0,0,0.51633801,-284.45878,-141.96817)"
+     inkscape:label="goud" />
+  <path
+     fill="#e8bf49"
+     opacity="1"
+     d="m 146.81254,13.046827 c 1.19274,2.426789 1.64195,5.11691 2.43195,7.68311 1.16176,3.784758 2.57136,7.512718 4.41469,11.023816 1.45607,2.865676 3.88803,5.10142 6.48521,6.929257 5.72102,3.402667 12.45407,4.223644 18.77405,5.937887 -1.32699,1.043002 -3.10836,1.027512 -4.6677,1.492217 -6.21155,1.399276 -12.9859,2.524892 -17.8085,7.04285 -4.22364,4.264952 -5.87592,10.238983 -7.35781,15.882557 -0.67641,2.385482 -1.12046,4.853577 -2.21509,7.094484 -2.28738,-7.166771 -3.36137,-15.097723 -8.2356,-21.107897 -4.66253,-5.524817 -12.04616,-7.130628 -18.76888,-8.633172 -1.84849,-0.562808 -3.95515,-0.593789 -5.52482,-1.812346 5.54031,-1.41993 11.31297,-2.15313 16.57445,-4.523121 4.20299,-1.585158 7.79154,-4.739983 9.89304,-8.710623 3.14966,-5.669391 4.47148,-12.071982 6.00501,-18.299019 z"
+     id="path2-0"
+     inkscape:label="ster"
+     style="fill:#d4a85a;fill-opacity:1;stroke-width:0.516338" />
+  <path
+     d="M 201.22559,168.89355 A 103.46912,103.46912 0 0 1 163.25684,176.11084 103.46912,103.46912 0 0 1 59.7876,72.6416 103.46912,103.46912 0 0 1 89.5752,0 109.83982,109.83982 0 0 0 0,107.95312 109.83982,109.83982 0 0 0 109.83985,217.79296 109.83982,109.83982 0 0 0 201.22559,168.89355 Z"
+     style="opacity:1;vector-effect:non-scaling-stroke;fill:#1f2a44;fill-opacity:1;stroke-width:0.742574;-inkscape-stroke:hairline"
+     id="path21"
+     inkscape:label="maan" />
+</svg>

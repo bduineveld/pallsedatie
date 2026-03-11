@@ -19,10 +19,19 @@ export interface PatientData {
   bsn: string;
   gender: string;
   address: string;
+  contactPhone: string;
+  insurance: string;
 }
 
 export interface PhysicianData {
+  role:
+    | "huisarts"
+    | "huisarts_io"
+    | "basisarts"
+    | "verpleegkundig_specialist"
+    | "physician_assistant";
   fullName: string;
+  practice: string;
   place: string;
   date: string;
   phone: string;
@@ -34,7 +43,10 @@ export interface GeneralFormData {
   patient: PatientData;
   physician: PhysicianData;
   organization: string;
+  organizationPhone: string;
+  organizationSecureEmail: string;
   pharmacy: string;
+  pharmacyPhone: string;
   showMlPerHour: boolean;
   includeGeneratedByFooter: boolean;
 }

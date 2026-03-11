@@ -16,17 +16,24 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
         birthDate: "",
         bsn: "",
         gender: "",
-        address: ""
+        address: "",
+        contactPhone: "",
+        insurance: ""
       },
       physician: {
+        role: "huisarts",
         fullName: "",
+        practice: "",
         place: "",
         date: today,
         phone: "",
         anwPhone: ""
       },
       organization: "",
+      organizationPhone: "",
+      organizationSecureEmail: "",
       pharmacy: "",
+      pharmacyPhone: "",
       showMlPerHour: false,
       includeGeneratedByFooter: true
     },

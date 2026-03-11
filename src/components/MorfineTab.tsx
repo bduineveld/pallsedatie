@@ -128,7 +128,7 @@ export function MorfineTab({
     <section className="card">
       <h2>Morfine</h2>
       <div className="grid-2">
-        <FormField label="Diagnose / ziektebeeld">
+        <FormField label="Diagnose / ziektebeeld *">
           <input
             value={data.diagnosis}
             onChange={(event) => {
@@ -138,10 +138,10 @@ export function MorfineTab({
             onBlur={onDiagnosisBlur}
           />
         </FormField>
-        <FormField label="Indicatie / refractair symptoom">
+        <FormField label="Indicatie / refractair symptoom *">
           <input value={data.indication} onChange={(event) => onChange({ ...data, indication: event.target.value })} />
         </FormField>
-        <FormField label="Startdatum">
+        <FormField label="Startdatum *">
           <input type="date" value={data.startDate} onChange={(event) => onChange({ ...data, startDate: event.target.value })} />
         </FormField>
       </div>
@@ -168,7 +168,7 @@ export function MorfineTab({
       </div>
 
       <div className="stack">
-        <span className="form-label">Opioïdstatus</span>
+        <span className="form-label">Opioïdstatus *</span>
         <label className="checkbox-line">
           <input
             type="radio"
@@ -336,7 +336,7 @@ export function MorfineTab({
         </div>
       ) : null}
       <div className="grid-2">
-        <FormField label="Continue dosis (mg/24u)">
+        <FormField label="Continue dosis (mg/24u) *">
           <input value={data.continueDoseMgPer24h} onChange={(event) => onChange({ ...data, continueDoseMgPer24h: event.target.value })} />
         </FormField>
         <FormField label="Startbolus (mg)">

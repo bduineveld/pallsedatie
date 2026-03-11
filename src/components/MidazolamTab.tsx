@@ -40,7 +40,7 @@ export function MidazolamTab({
     <section className="card">
       <h2>Midazolam (Dormicum)</h2>
       <div className="grid-2">
-        <FormField label="Diagnose / ziektebeeld">
+        <FormField label="Diagnose / ziektebeeld *">
           <input
             value={data.diagnosis}
             onChange={(event) => {
@@ -50,10 +50,10 @@ export function MidazolamTab({
             onBlur={onDiagnosisBlur}
           />
         </FormField>
-        <FormField label="Indicatie / refractair symptoom">
+        <FormField label="Indicatie / refractair symptoom *">
           <input value={data.indication} onChange={(event) => onChange({ ...data, indication: event.target.value })} />
         </FormField>
-        <FormField label="Startdatum">
+        <FormField label="Startdatum *">
           <input type="date" value={data.startDate} onChange={(event) => onChange({ ...data, startDate: event.target.value })} />
         </FormField>
       </div>
@@ -81,10 +81,10 @@ export function MidazolamTab({
         <FormField label="Start/loading dose (mg)">
           <input value={data.loadingDoseMg} onChange={(event) => onChange({ ...data, loadingDoseMg: event.target.value })} />
         </FormField>
-        <FormField label="Continue dosis (mg/24u)">
+        <FormField label="Continue dosis (mg/24u) *">
           <input value={data.continueDoseMgPer24h} onChange={(event) => onChange({ ...data, continueDoseMgPer24h: event.target.value })} />
         </FormField>
-        <FormField label="Bolus (mg)">
+        <FormField label="Bolus (mg) *">
           <input value={data.bolusMg} onChange={(event) => onChange({ ...data, bolusMg: event.target.value })} />
         </FormField>
         <FormField label="Lockout (uur)">
