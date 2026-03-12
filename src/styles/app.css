@@ -105,17 +105,85 @@ body {
 }
 
 .general-group {
-  border: 1px solid #d7dce5;
+  border: 1px solid var(--brand-navy-border);
   border-radius: 8px;
-  padding: 0.9rem;
-  margin-bottom: 0.9rem;
+  padding: 0;
+  margin-bottom: 1.1rem;
   background: #fff;
+  overflow: hidden;
+}
+
+.general-group-header {
+  background: var(--brand-navy);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.general-group-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.general-group-header-text {
+  display: grid;
+  gap: 0.1rem;
 }
 
 .general-group-title {
-  margin: 0 0 0.6rem 0;
+  margin: 0;
+  color: #fff;
+  font-size: 0.98rem;
+}
+
+.general-group > .grid-2,
+.general-group > .stack {
+  padding: 0.9rem;
+  margin: 0;
+}
+
+.general-group-body {
+  padding: 0.9rem;
+}
+
+.tab-subsection {
+  border: 1px solid var(--brand-navy-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.9rem;
+  margin-bottom: 0.9rem;
+}
+
+.tab-subsection-title {
+  margin: 0 0 0.65rem 0;
   color: var(--brand-navy);
   font-size: 1.02rem;
+}
+
+.inline-field-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inline-field-row > select,
+.inline-field-row > input {
+  flex: 1;
+}
+
+.inline-fixed-input {
+  max-width: 8.5rem;
+  background: #f8fbff;
 }
 
 h1,
@@ -263,6 +331,72 @@ textarea {
   padding: 0.75rem;
   border-radius: 6px;
   margin: 0.75rem 0;
+}
+
+.midazolam-advice-window {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.midazolam-advice-window--none {
+  border-left-color: #16a34a;
+}
+
+.midazolam-advice-window--single {
+  border-left-color: var(--brand-gold);
+}
+
+.midazolam-advice-window--mixed {
+  border-left-color: #dc2626;
+}
+
+.morfine-conversion-summary--green {
+  border-left-color: #16a34a;
+}
+
+.morfine-conversion-summary--gold {
+  border-left-color: var(--brand-gold);
+}
+
+.morfine-conversion-summary--red {
+  border-left-color: #dc2626;
+}
+
+.midazolam-risk-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.midazolam-risk-columns .stack {
+  margin: 0;
+}
+
+.midazolam-risk-columns .form-label {
+  margin-bottom: 0.2rem;
+}
+
+.midazolam-advice-window > p {
+  margin: 0;
+}
+
+.midazolam-mixed-warning {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.midazolam-advice-block {
+  border: 1px solid var(--brand-navy-border);
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 0.6rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.midazolam-advice-block p {
+  margin: 0;
 }
 
 .guideline-panel {

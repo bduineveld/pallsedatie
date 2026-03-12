@@ -34,12 +34,21 @@ export function App() {
     setState({
       ...state,
       general,
-      morfine: { ...state.morfine, ageOver70: autoOver70 }
+      morfine: { ...state.morfine, ageOver70: autoOver70 },
+      midazolam: { ...state.midazolam, ageOver70: autoOver70 }
     });
   };
 
   const handleMorfineChange = (morfine: typeof state.morfine) => {
-    setState({ ...state, morfine });
+    setState({
+      ...state,
+      morfine,
+      midazolam: {
+        ...state.midazolam,
+        ageOver70: morfine.ageOver70,
+        egfrUnder30: morfine.egfrUnder30
+      }
+    });
   };
 
   const handleMidazolamChange = (midazolam: typeof state.midazolam) => {
@@ -143,7 +152,6 @@ export function App() {
             data={state.midazolam}
             onChange={handleMidazolamChange}
             showMlPerHour={state.general.showMlPerHour}
-            patientGender={state.general.patient.gender}
             onDiagnosisUserChange={() =>
               setDiagnosisDirty((prev) => ({ ...prev, midazolam: true }))
             }

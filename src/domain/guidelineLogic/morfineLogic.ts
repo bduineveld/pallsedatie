@@ -9,7 +9,7 @@ export interface MorfineGuidelineInput {
 export function buildMorfineWarnings(input: MorfineGuidelineInput): string[] {
   const warnings: string[] = [];
   if (input.ageOver70) {
-    warnings.push("Patiënt >70 jaar: overweeg lagere startdosering en strakkere evaluatie.");
+    warnings.push("Patiënt >70 jaar: Overweeg lagere startdosering dan advies en strakkere evaluatie.");
   }
   if (input.egfrUnder30) {
     warnings.push("Verminderde nierfunctie: monitor stapeling en bijwerkingen extra zorgvuldig.");

@@ -14,6 +14,22 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       {text} <span className="required-mark">*</span>
     </>
   );
+  const SectionHeader = ({
+    icon,
+    title
+  }: {
+    icon: string;
+    title: string;
+  }) => (
+    <div className="general-group-header">
+      <span className="general-group-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="general-group-header-text">
+        <h3 className="general-group-title">{title}</h3>
+      </div>
+    </div>
+  );
 
   return (
     <section className="card">
@@ -21,6 +37,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       <p className="small-muted">{uiDisclaimer}</p>
 
       <div className="general-group">
+        <SectionHeader icon="🗓" title="Datum verzoek" />
         <div className="grid-2">
           <FormField label={requiredLabel("Datum uitvoeringsverzoek")}>
             <input
@@ -35,7 +52,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <h3 className="general-group-title">Client</h3>
+        <SectionHeader icon="👤" title="Cliënt" />
         <div className="grid-2">
           <FormField label={requiredLabel("Naam")}>
             <input
@@ -111,7 +128,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <h3 className="general-group-title">Aanvragend zorgverlener</h3>
+        <SectionHeader icon="🩺" title="Aanvragend zorgverlener" />
         <div className="grid-2">
           <FormField label={requiredLabel("Functie")}>
             <select
@@ -182,7 +199,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <h3 className="general-group-title">Uitvoerende zorginstelling</h3>
+        <SectionHeader icon="🏠" title="Uitvoerende zorginstelling" />
         <div className="grid-2">
           <FormField label="Naam instelling">
             <input value={data.organization} onChange={(event) => onChange({ ...data, organization: event.target.value })} />
@@ -203,7 +220,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <h3 className="general-group-title">Apotheek</h3>
+        <SectionHeader icon="💊" title="Apotheek" />
         <div className="grid-2">
           <FormField label="Naam apotheek">
             <input value={data.pharmacy} onChange={(event) => onChange({ ...data, pharmacy: event.target.value })} />
@@ -218,7 +235,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <h3 className="general-group-title">Weergave en footer</h3>
+        <SectionHeader icon="⚙" title="Weergave en footer" />
         <div className="stack">
           <label className="checkbox-line">
             <input
