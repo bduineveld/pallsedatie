@@ -124,7 +124,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     color: lineColor
   });
   drawColumnField("Adres", safe(state.general.patient.address), leftX, topFieldStartY - 2 * topLineGap);
-  drawColumnField("Plaats", safe(state.general.patient.address), leftX, topFieldStartY - 3 * topLineGap);
+  drawColumnField("Plaats", safe(state.general.patient.city), leftX, topFieldStartY - 3 * topLineGap);
   drawColumnField("Telefoon", safe(state.general.patient.contactPhone), leftX, topFieldStartY - 4 * topLineGap);
   drawColumnField("Verzekering", safe(state.general.patient.insurance), leftX, topFieldStartY - 5 * topLineGap);
 

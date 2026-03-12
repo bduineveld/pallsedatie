@@ -19,6 +19,7 @@ export interface PatientData {
   bsn: string;
   gender: string;
   address: string;
+  city: string;
   contactPhone: string;
   insurance: string;
 }

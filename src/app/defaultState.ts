@@ -17,6 +17,7 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
         bsn: "",
         gender: "",
         address: "",
+        city: "",
         contactPhone: "",
         insurance: ""
       },
