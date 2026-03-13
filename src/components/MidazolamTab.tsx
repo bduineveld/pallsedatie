@@ -178,9 +178,13 @@ export function MidazolamTab({
           </div>
 
           <div className={`conversion-summary midazolam-advice-window ${riskStripeClass}`}>
-            <p className={bundle.adviceSummary.isMixedRisk ? "midazolam-mixed-warning" : undefined}>
-              {bundle.adviceSummary.combinedSelectionLine}
-            </p>
+            {bundle.adviceSummary.isMixedRisk ? (
+              <section className="warning-banner">
+                {bundle.adviceSummary.combinedSelectionLine}
+              </section>
+            ) : (
+              <p>{bundle.adviceSummary.combinedSelectionLine}</p>
+            )}
             {bundle.adviceSummary.blocks.map((block) => (
               <div className="midazolam-advice-block" key={block.id}>
                 <p>
