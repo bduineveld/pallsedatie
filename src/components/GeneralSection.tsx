@@ -1,5 +1,6 @@
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { uiDisclaimer } from "../data/guidelineText";
-import { GeneralFormData } from "../types/models";
+import { GeneralFormData, PhysicianData } from "../types/models";
 import { FormField } from "./FormField";
 
 interface GeneralSectionProps {
@@ -7,8 +8,50 @@ interface GeneralSectionProps {
   onChange: (data: GeneralFormData) => void;
 }
 
+interface SavedOrganizationEntry {
+  name: string;
+  phone: string;
+  secureEmail: string;
+}
+
 export function GeneralSection({ data, onChange }: GeneralSectionProps) {
+  const PHYSICIAN_STORAGE_KEY = "pallsedatie.savedPhysician";
+  const ORGANIZATION_STORAGE_KEY = "pallsedatie.savedOrganizations";
+  const hasLoadedSavedPhysician = useRef(false);
+  const hasLoadedSavedOrganizations = useRef(false);
+  const [lastSavedPhysicianPayload, setLastSavedPhysicianPayload] = useState("");
+  const [lastSavedOrganizationPayload, setLastSavedOrganizationPayload] = useState("");
+  const [savedOrganizations, setSavedOrganizations] = useState<SavedOrganizationEntry[]>([]);
+  const [organizationMenuOpen, setOrganizationMenuOpen] = useState(false);
   const physicianRole = data.physician.role ?? "huisarts";
+  const currentPhysicianPayload = useMemo(
+    () => JSON.stringify(data.physician),
+    [data.physician]
+  );
+  const currentOrganizationPayload = useMemo(
+    () =>
+      JSON.stringify({
+        name: data.organization,
+        phone: data.organizationPhone,
+        secureEmail: data.organizationSecureEmail
+      }),
+    [data.organization, data.organizationPhone, data.organizationSecureEmail]
+  );
+  const physicianIsSaved =
+    lastSavedPhysicianPayload.length > 0 &&
+    currentPhysicianPayload === lastSavedPhysicianPayload;
+  const organizationIsSaved =
+    lastSavedOrganizationPayload.length > 0 &&
+    currentOrganizationPayload === lastSavedOrganizationPayload;
+  const filteredOrganizations = useMemo(() => {
+    const needle = data.organization.trim().toLowerCase();
+    if (!needle) {
+      return savedOrganizations;
+    }
+    return savedOrganizations.filter((entry) =>
+      entry.name.toLowerCase().includes(needle)
+    );
+  }, [data.organization, savedOrganizations]);
   const requiredLabel = (text: string) => (
     <>
       {text} <span className="required-mark">*</span>
@@ -16,10 +59,12 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
   );
   const SectionHeader = ({
     icon,
-    title
+    title,
+    action
   }: {
     icon: string;
     title: string;
+    action?: ReactNode;
   }) => (
     <div className="general-group-header">
       <span className="general-group-icon" aria-hidden="true">
@@ -28,8 +73,102 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       <div className="general-group-header-text">
         <h3 className="general-group-title">{title}</h3>
       </div>
+      {action ? <div className="general-group-header-actions">{action}</div> : null}
     </div>
   );
+
+  useEffect(() => {
+    if (hasLoadedSavedPhysician.current || typeof window === "undefined") {
+      return;
+    }
+    hasLoadedSavedPhysician.current = true;
+    const rawSavedPhysician = window.localStorage.getItem(PHYSICIAN_STORAGE_KEY);
+    if (!rawSavedPhysician) {
+      return;
+    }
+    try {
+      const savedPhysician = JSON.parse(rawSavedPhysician) as Partial<PhysicianData>;
+      const mergedPhysician = {
+        ...data.physician,
+        ...savedPhysician
+      };
+      onChange({
+        ...data,
+        physician: mergedPhysician
+      });
+      setLastSavedPhysicianPayload(JSON.stringify(mergedPhysician));
+    } catch {
+      // Ignore invalid local data; form remains editable.
+    }
+  }, [data, onChange]);
+
+  useEffect(() => {
+    if (hasLoadedSavedOrganizations.current || typeof window === "undefined") {
+      return;
+    }
+    hasLoadedSavedOrganizations.current = true;
+    const rawSavedOrganizations = window.localStorage.getItem(ORGANIZATION_STORAGE_KEY);
+    if (!rawSavedOrganizations) {
+      return;
+    }
+    try {
+      const parsed = JSON.parse(rawSavedOrganizations) as SavedOrganizationEntry[];
+      const valid = parsed.filter(
+        (entry) =>
+          typeof entry?.name === "string" &&
+          typeof entry?.phone === "string" &&
+          typeof entry?.secureEmail === "string"
+      );
+      setSavedOrganizations(valid);
+    } catch {
+      // Ignore invalid local data; user can save again.
+    }
+  }, []);
+
+  const savePhysicianToBrowser = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(PHYSICIAN_STORAGE_KEY, currentPhysicianPayload);
+    setLastSavedPhysicianPayload(currentPhysicianPayload);
+  };
+
+  const saveOrganizationToBrowser = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const name = data.organization.trim();
+    if (!name) {
+      return;
+    }
+    const entryToSave: SavedOrganizationEntry = {
+      name,
+      phone: data.organizationPhone.trim(),
+      secureEmail: data.organizationSecureEmail.trim()
+    };
+    const nextOrganizations = [...savedOrganizations];
+    const existingIndex = nextOrganizations.findIndex(
+      (entry) => entry.name.toLowerCase() === name.toLowerCase()
+    );
+    if (existingIndex >= 0) {
+      nextOrganizations[existingIndex] = entryToSave;
+    } else {
+      nextOrganizations.push(entryToSave);
+    }
+    window.localStorage.setItem(ORGANIZATION_STORAGE_KEY, JSON.stringify(nextOrganizations));
+    setSavedOrganizations(nextOrganizations);
+    setLastSavedOrganizationPayload(JSON.stringify(entryToSave));
+  };
+
+  const selectSavedOrganization = (entry: SavedOrganizationEntry) => {
+    onChange({
+      ...data,
+      organization: entry.name,
+      organizationPhone: entry.phone,
+      organizationSecureEmail: entry.secureEmail
+    });
+    setOrganizationMenuOpen(false);
+  };
 
   return (
     <section className="card">
@@ -128,7 +267,21 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <SectionHeader icon="🩺" title="Aanvragend zorgverlener" />
+        <SectionHeader
+          icon="🩺"
+          title="Aanvragend zorgverlener"
+          action={
+            <button
+              type="button"
+              className="header-action-button"
+              title="zorgverlener opslaan in browser"
+              aria-label="zorgverlener opslaan in browser"
+              onClick={savePhysicianToBrowser}
+            >
+              {physicianIsSaved ? "✅" : "💾"}
+            </button>
+          }
+        />
         <div className="grid-2">
           <FormField label={requiredLabel("Functie")}>
             <select
@@ -198,11 +351,52 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
         </div>
       </div>
 
-      <div className="general-group">
-        <SectionHeader icon="🏠" title="Uitvoerende zorginstelling" />
+      <div className="general-group general-group--allow-overflow">
+        <SectionHeader
+          icon="🏠"
+          title="Uitvoerende zorginstelling"
+          action={
+            <button
+              type="button"
+              className="header-action-button"
+              title="zorginstelling opslaan in browser"
+              aria-label="zorginstelling opslaan in browser"
+              onClick={saveOrganizationToBrowser}
+            >
+              {organizationIsSaved ? "✅" : "💾"}
+            </button>
+          }
+        />
         <div className="grid-2">
           <FormField label="Naam instelling">
-            <input value={data.organization} onChange={(event) => onChange({ ...data, organization: event.target.value })} />
+            <div
+              className="autocomplete-wrapper"
+              onBlur={() => setTimeout(() => setOrganizationMenuOpen(false), 120)}
+            >
+              <input
+                value={data.organization}
+                onFocus={() => setOrganizationMenuOpen(true)}
+                onChange={(event) => {
+                  onChange({ ...data, organization: event.target.value });
+                  setOrganizationMenuOpen(true);
+                }}
+              />
+              {organizationMenuOpen && filteredOrganizations.length > 0 ? (
+                <div className="autocomplete-menu">
+                  {filteredOrganizations.map((entry) => (
+                    <button
+                      key={entry.name.toLowerCase()}
+                      type="button"
+                      className="autocomplete-item"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => selectSavedOrganization(entry)}
+                    >
+                      {entry.name}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </FormField>
           <FormField label="Telefoon">
             <input

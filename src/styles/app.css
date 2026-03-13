@@ -2,6 +2,7 @@
   font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
   font-optical-sizing: auto;
   --brand-navy: #1f2a44;
+  --brand-navy-light: #7f8ba7;
   --brand-gold: #d4a85a;
   --brand-navy-soft: #e8edf7;
   --brand-navy-border: #c3cee4;
@@ -113,8 +114,12 @@ body {
   overflow: hidden;
 }
 
+.general-group--allow-overflow {
+  overflow: visible;
+}
+
 .general-group-header {
-  background: var(--brand-navy);
+  background: var(--brand-navy-light);
   color: #fff;
   display: flex;
   align-items: center;
@@ -126,9 +131,9 @@ body {
 .general-group-icon {
   width: 1.45rem;
   height: 1.45rem;
-  border-radius: 6px;
+  /*border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);*/
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -138,6 +143,68 @@ body {
 .general-group-header-text {
   display: grid;
   gap: 0.1rem;
+}
+
+.general-group-header-actions {
+  margin-left: auto;
+}
+
+.header-action-button {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+}
+
+.header-action-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.autocomplete-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete-wrapper > input {
+  width: 100%;
+}
+
+.autocomplete-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #c5c5c5;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 50;
+  padding: 2px 0;
+}
+
+.autocomplete-menu--compact {
+  right: auto;
+  width: max-content;
+  min-width: 280px;
+  max-width: 320px;
+}
+
+.autocomplete-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #1f2937;
+  text-align: left;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover {
+  background: #e9e9e9;
 }
 
 .general-group-title {
@@ -281,6 +348,12 @@ textarea {
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.opioid-picker-inputs .autocomplete-wrapper {
+  flex: 1 1 240px;
+  min-width: 240px;
+  max-width: 320px;
 }
 
 .opioid-suggestions {

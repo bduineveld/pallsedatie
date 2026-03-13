@@ -1,5 +1,3 @@
-import { legalConfirmationText } from "../data/guidelineText";
-
 interface PdfActionsProps {
   mode: "morfine" | "midazolam" | "combination";
   canDownloadMorfine: boolean;
@@ -27,19 +25,24 @@ export function PdfActions({
   onDownloadMorfine,
   onDownloadMidazolam
 }: PdfActionsProps) {
+  const legalConfirmationText =
+    "Deze tool geeft een suggestie op basis van de Pallialine/Palliaweb-richtlijnen. Ik blijf als voorschrijver volledig verantwoordelijk voor indicatie, dosering en uiteindelijke inhoud van het uitvoeringsverzoek. Ik lees het nog één keer door voordat ik hem onderteken.";
   return (
     <section className="card">
       <h2>Uitvoeringsverzoek PDF</h2>
       {(mode === "morfine" || mode === "combination") && (
         <div className="stack">
-          <label className="checkbox-line legal">
-            <input
-              type="checkbox"
-              checked={confirmMorfinePdf}
-              onChange={(event) => onToggleConfirmMorfinePdf(event.target.checked)}
-            />
-            {legalConfirmationText}
-          </label>
+          <div className="legal">
+            <p>{legalConfirmationText}</p>
+            <label className="checkbox-line">
+              <input
+                type="checkbox"
+                checked={confirmMorfinePdf}
+                onChange={(event) => onToggleConfirmMorfinePdf(event.target.checked)}
+              />
+              ik begrijp het
+            </label>
+          </div>
           <button
             type="button"
             disabled={!canDownloadMorfine || !confirmMorfinePdf}
@@ -52,14 +55,17 @@ export function PdfActions({
       )}
       {(mode === "midazolam" || mode === "combination") && (
         <div className="stack">
-          <label className="checkbox-line legal">
-            <input
-              type="checkbox"
-              checked={confirmMidazolamPdf}
-              onChange={(event) => onToggleConfirmMidazolamPdf(event.target.checked)}
-            />
-            {legalConfirmationText}
-          </label>
+          <div className="legal">
+            <p>{legalConfirmationText}</p>
+            <label className="checkbox-line">
+              <input
+                type="checkbox"
+                checked={confirmMidazolamPdf}
+                onChange={(event) => onToggleConfirmMidazolamPdf(event.target.checked)}
+              />
+              ik begrijp het
+            </label>
+          </div>
           <button
             type="button"
             disabled={!canDownloadMidazolam || !confirmMidazolamPdf}

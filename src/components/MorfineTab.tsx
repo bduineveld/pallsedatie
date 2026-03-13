@@ -61,6 +61,7 @@ export function MorfineTab({
   const [opioidQuery, setOpioidQuery] = useState("");
   const [pendingOpioid, setPendingOpioid] = useState<OpioidKind | "">("");
   const [pendingDose, setPendingDose] = useState("");
+  const [opioidMenuOpen, setOpioidMenuOpen] = useState(false);
 
   const conversionTableRows = [30, 60, 120, 180, 240, 360, 480].map((morphineOralDose) => {
     const getMatch = (opioid: OpioidKind) =>
@@ -171,7 +172,7 @@ export function MorfineTab({
         </div>
       </div>
 
-      <div className="general-group">
+      <div className="general-group general-group--allow-overflow">
         <SectionHeader icon="💉" title="Middel" />
         <div className="general-group-body">
           <div className="grid-2">
@@ -243,16 +244,42 @@ export function MorfineTab({
               <h3>Actuele opioïden</h3>
               <div className="opioid-picker">
                 <div className="opioid-picker-inputs">
-                  <input
-                    placeholder="Zoek opioïd"
-                    value={opioidQuery}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setOpioidQuery(value);
-                      const exact = opioidOptions.find((option) => option.label === value);
-                      setPendingOpioid(exact ? exact.value : "");
-                    }}
-                  />
+                  <div
+                    className="autocomplete-wrapper"
+                    onBlur={() => setTimeout(() => setOpioidMenuOpen(false), 120)}
+                  >
+                    <input
+                      placeholder="Zoek opioïd"
+                      value={opioidQuery}
+                      onFocus={() => setOpioidMenuOpen(true)}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setOpioidQuery(value);
+                        setOpioidMenuOpen(true);
+                        const exact = opioidOptions.find((option) => option.label === value);
+                        setPendingOpioid(exact ? exact.value : "");
+                      }}
+                    />
+                    {opioidMenuOpen && filteredOpioids.length > 0 ? (
+                      <div className="autocomplete-menu autocomplete-menu--compact">
+                        {filteredOpioids.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className="autocomplete-item"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setPendingOpioid(option.value);
+                              setOpioidQuery(option.label);
+                              setOpioidMenuOpen(false);
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                   <input
                     type="number"
                     placeholder="Dosering"
@@ -267,22 +294,6 @@ export function MorfineTab({
                     OK
                   </button>
                 </div>
-                {opioidQuery.trim() ? (
-                  <div className="opioid-suggestions">
-                    {filteredOpioids.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setPendingOpioid(option.value);
-                          setOpioidQuery(option.label);
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
               </div>
 
               <div className="opioid-chip-list">
