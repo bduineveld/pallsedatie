@@ -18,14 +18,20 @@ export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("algemeen");
   const [confirmMorfinePdf, setConfirmMorfinePdf] = useState(false);
   const [confirmMidazolamPdf, setConfirmMidazolamPdf] = useState(false);
+  const [hasDownloadedMorfine, setHasDownloadedMorfine] = useState(false);
+  const [hasDownloadedMidazolam, setHasDownloadedMidazolam] = useState(false);
   const [diagnosisDirty, setDiagnosisDirty] = useState({
     morfine: false,
     midazolam: false
   });
   const readiness = useMemo(() => getPdfReadiness(state), [state]);
   const adviceBlocks = useMemo(
-    () => buildPrescriptionAdvice({ ...state, general: { ...state.general, mode: "combination" } }),
-    [state]
+    () =>
+      buildPrescriptionAdvice(
+        { ...state, general: { ...state.general, mode: "combination" } },
+        { includeMorfine: hasDownloadedMorfine, includeMidazolam: hasDownloadedMidazolam }
+      ),
+    [state, hasDownloadedMorfine, hasDownloadedMidazolam]
   );
   const algemeenComplete = validateSharedForPdf(state).length === 0;
 
@@ -81,36 +87,52 @@ export function App() {
         <img src="/pallsedatie-logo.svg" alt="Pallsedatie logo" className="app-brand-logo" />
         <h1 className="app-brand-subtitle">uitvoeringsverzoek generator</h1>
       </header>
-      <section className="card">
-        <div className="segment">
-          <button type="button" className={activeTab === "algemeen" ? "active" : ""} onClick={() => setActiveTab("algemeen")}>
-            Algemeen {algemeenComplete ? "✅" : ""}
+      <div className="content-with-tabs">
+        <div className="paper-tabs">
+          <button
+            type="button"
+            className={`${activeTab === "algemeen" ? "active" : ""} ${algemeenComplete ? "is-complete" : ""}`.trim()}
+            onClick={() => setActiveTab("algemeen")}
+          >
+            Algemeen
           </button>
-          <button type="button" className={activeTab === "morfine" ? "active" : ""} onClick={() => setActiveTab("morfine")}>
-            Morfine {readiness.morfineReady.valid ? "✅" : ""}
+          <button
+            type="button"
+            className={`${activeTab === "morfine" ? "active" : ""} ${readiness.morfineReady.valid ? "is-complete" : ""}`.trim()}
+            onClick={() => setActiveTab("morfine")}
+          >
+            <img src="/morfine.svg" alt="" className="button-icon" aria-hidden="true" />
+            Morfine
           </button>
-          <button type="button" className={activeTab === "midazolam" ? "active" : ""} onClick={() => setActiveTab("midazolam")}>
-            Midazolam {readiness.midazolamReady.valid ? "✅" : ""}
+          <button
+            type="button"
+            className={`${activeTab === "midazolam" ? "active" : ""} ${readiness.midazolamReady.valid ? "is-complete" : ""}`.trim()}
+            onClick={() => setActiveTab("midazolam")}
+          >
+            <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
+            Midazolam
           </button>
-          <button type="button" className={activeTab === "recepten" ? "active" : ""} onClick={() => setActiveTab("recepten")}>
-            Te maken recepten
+          <button
+            type="button"
+            className={`${activeTab === "recepten" ? "active" : ""} tab-button-recepten`}
+            onClick={() => setActiveTab("recepten")}
+          >
+            Recepten
           </button>
         </div>
-      </section>
-
       {activeTab === "algemeen" ? (
         <>
           <GeneralSection data={state.general} onChange={handleGeneralChange} />
-          <section className="card">
-            <div className="segment">
-              <button type="button" onClick={() => setActiveTab("morfine")}>
-                Door naar morfine
-              </button>
-              <button type="button" onClick={() => setActiveTab("midazolam")}>
-                Door naar midazolam
-              </button>
-            </div>
-          </section>
+          <div className="flow-buttons">
+            <button type="button" onClick={() => setActiveTab("morfine")}>
+              <img src="/morfine.svg" alt="" className="button-icon" aria-hidden="true" />
+              Door naar morfine
+            </button>
+            <button type="button" onClick={() => setActiveTab("midazolam")}>
+              <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
+              Door naar midazolam
+            </button>
+          </div>
         </>
       ) : null}
 
@@ -135,14 +157,24 @@ export function App() {
             canDownloadMidazolam={readiness.midazolamReady.valid}
             morfineErrors={readiness.morfineReady.errors}
             midazolamErrors={readiness.midazolamReady.errors}
-            onDownloadMorfine={() => downloadMorfinePdf(state)}
-            onDownloadMidazolam={() => downloadMidazolamPdf(state)}
+            onDownloadMorfine={() => {
+              downloadMorfinePdf(state);
+              setHasDownloadedMorfine(true);
+            }}
+            onDownloadMidazolam={() => {
+              downloadMidazolamPdf(state);
+              setHasDownloadedMidazolam(true);
+            }}
           />
-          <section className="card">
-            <button type="button" onClick={() => setActiveTab("recepten")}>
-              Te maken recepten
+          <div className="flow-buttons">
+            <button type="button" onClick={() => setActiveTab("midazolam")}>
+              <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
+              Door naar midazolam
             </button>
-          </section>
+            <button type="button" onClick={() => setActiveTab("recepten")}>
+              Recepten
+            </button>
+          </div>
         </>
       ) : null}
 
@@ -167,14 +199,20 @@ export function App() {
             canDownloadMidazolam={readiness.midazolamReady.valid}
             morfineErrors={readiness.morfineReady.errors}
             midazolamErrors={readiness.midazolamReady.errors}
-            onDownloadMorfine={() => downloadMorfinePdf(state)}
-            onDownloadMidazolam={() => downloadMidazolamPdf(state)}
+            onDownloadMorfine={() => {
+              downloadMorfinePdf(state);
+              setHasDownloadedMorfine(true);
+            }}
+            onDownloadMidazolam={() => {
+              downloadMidazolamPdf(state);
+              setHasDownloadedMidazolam(true);
+            }}
           />
-          <section className="card">
+          <div className="flow-buttons">
             <button type="button" onClick={() => setActiveTab("recepten")}>
-              Te maken recepten
+              Recepten
             </button>
-          </section>
+          </div>
         </>
       ) : null}
       {activeTab === "recepten" ? (
@@ -182,6 +220,7 @@ export function App() {
           <PrescriptionAdvice blocks={adviceBlocks} />
         </>
       ) : null}
+      </div>
     </main>
   );
 }

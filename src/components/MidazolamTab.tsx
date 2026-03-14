@@ -88,7 +88,7 @@ export function MidazolamTab({
 
   return (
     <section className="card">
-      <h2>Midazolam (Dormicum)</h2>
+      <h2>Uitvoeringsverzoek midazolam, eventueel verzoek CAD</h2>
 
       <div className="general-group general-group--allow-overflow">
         <SectionHeader icon="📌" title="Reden" />

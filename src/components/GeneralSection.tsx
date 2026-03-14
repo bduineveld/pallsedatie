@@ -19,6 +19,8 @@ interface SavedPharmacyEntry {
   phone: string;
 }
 
+type SavedPhysicianProfile = Omit<PhysicianData, "date">;
+
 export function GeneralSection({ data, onChange }: GeneralSectionProps) {
   const PHYSICIAN_STORAGE_KEY = "pallsedatie.savedPhysician";
   const ORGANIZATION_STORAGE_KEY = "pallsedatie.savedOrganizations";
@@ -35,8 +37,25 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
   const [pharmacyMenuOpen, setPharmacyMenuOpen] = useState(false);
   const physicianRole = data.physician.role ?? "huisarts";
   const currentPhysicianPayload = useMemo(
-    () => JSON.stringify(data.physician),
-    [data.physician]
+    () =>
+      JSON.stringify({
+        role: data.physician.role,
+        fullName: data.physician.fullName,
+        practice: data.physician.practice,
+        place: data.physician.place,
+        practiceAddress: data.physician.practiceAddress,
+        phone: data.physician.phone,
+        anwPhone: data.physician.anwPhone
+      } as SavedPhysicianProfile),
+    [
+      data.physician.role,
+      data.physician.fullName,
+      data.physician.practice,
+      data.physician.place,
+      data.physician.practiceAddress,
+      data.physician.phone,
+      data.physician.anwPhone
+    ]
   );
   const currentOrganizationPayload = useMemo(
     () =>
@@ -117,10 +136,12 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       return;
     }
     try {
-      const savedPhysician = JSON.parse(rawSavedPhysician) as Partial<PhysicianData>;
+      const savedPhysician = JSON.parse(rawSavedPhysician) as Partial<SavedPhysicianProfile>;
       const mergedPhysician = {
         ...data.physician,
-        ...savedPhysician
+        ...savedPhysician,
+        // Date should always default to today and remain user-controlled in this form.
+        date: data.physician.date
       };
       onChange({
         ...data,
@@ -259,7 +280,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
 
   return (
     <section className="card">
-      <h2>Algemeen</h2>
+      <h2>Gegevens cliënt en zorgverleners, instellingen</h2>
       <p className="small-muted">{uiDisclaimer}</p>
 
       <div className="general-group">

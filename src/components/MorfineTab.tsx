@@ -199,7 +199,7 @@ export function MorfineTab({
 
   return (
     <section className="card">
-      <h2>Morfine</h2>
+      <h2>Uitvoeringsverzoek morfine met omreken functie</h2>
 
       <div className="general-group general-group--allow-overflow">
         <SectionHeader icon="📌" title="Reden" />

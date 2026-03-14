@@ -178,7 +178,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
   y -= 15;
   drawWideField(
     "Medicatie",
-    `Morfine ${state.morfine.concentrationMgPerMl}mg/100ml (Deltec cassette of Sendolor zakje)`,
+    `Morfine ${state.morfine.concentrationMgPerMl}mg/ml (Deltec cassette of Sendolor zakje)`,
     y,
     170
   );

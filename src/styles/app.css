@@ -58,9 +58,131 @@ body {
   box-shadow: 0 1px 2px rgba(31, 42, 68, 0.04);
 }
 
+.card > h2 {
+  margin: -1rem -1rem 0.85rem;
+  padding: 0.55rem 0.9rem;
+  background: var(--brand-navy);
+  color: #fff;
+  border-radius: 8px 8px 0 0;
+  font-size: 1.02rem;
+}
+
+.card > h2 + .small-muted {
+  margin-top: 0;
+}
+
+/* Klassieke tabbladen: vast aan de content, geen aparte navigatiebalk */
+.content-with-tabs {
+  overflow: visible;
+}
+
+.paper-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  padding: 0 0.5rem 0 0.75rem;
+  background: transparent;
+  min-height: 2.25rem;
+}
+
+.paper-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 1rem 0.5rem;
+  border: 1px solid var(--brand-navy-border);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: var(--brand-navy-soft);
+  color: var(--brand-navy);
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-bottom: -1px;
+  position: relative;
+  z-index: 1;
+}
+
+.paper-tabs button.is-complete {
+  padding-right: 1.35rem;
+}
+
+.paper-tabs button.is-complete::after {
+  content: "";
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #58a56c;
+}
+
+.paper-tabs button:hover {
+  background: #dce3f2;
+}
+
+.paper-tabs button.active {
+  background: var(--brand-navy);
+  color: #fff;
+  border-color: var(--brand-navy);
+  z-index: 2;
+  padding-bottom: 0.6rem;
+}
+
+.paper-tabs button.active.is-complete::after {
+  background: #8bd19c;
+}
+
+/* Eerste section.card na de tabs: tabs zitten visueel vast aan deze kaart */
+.content-with-tabs .paper-tabs + .card {
+  border-radius: 0 8px 8px 8px;
+}
+
+.tab-button-recepten {
+  margin-left: auto;
+}
+
+.flow-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  margin-left: 20px;
+}
+
+.flow-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--brand-navy);
+  color: #fff;
+  border: 1px solid var(--brand-navy);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.flow-buttons button:hover {
+  background: #2d3a5c;
+  border-color: #2d3a5c;
+}
+
+.button-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.paper-tabs .button-icon {
+  margin-left: -5px;
+}
+
 .segment {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .segment button {

@@ -193,7 +193,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   y -= 15;
   drawWideField(
     "Medicatie",
-    `Midazolam ${state.midazolam.concentrationMgPerMl}mg/100ml (Senozam zakje of Deltec cassette)`,
+    `Midazolam ${state.midazolam.concentrationMgPerMl}mg/ml (Senozam zakje of Deltec cassette)`,
     y,
     170
   );

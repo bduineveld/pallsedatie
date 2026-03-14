@@ -29,61 +29,45 @@ export function PdfActions({
     return null;
   }
 
+  const isMorfine = mode === "morfine";
+  const title = isMorfine
+    ? "Download uitvoeringsverzoek morfine"
+    : "Download uitvoeringsverzoek midazolam";
   const legalConfirmationTextMorfine =
     "Deze tool geeft een suggestie op basis van de Pallialine-richtlijn Pijn bij patiënten met kanker (december 2019). Ik blijf als voorschrijver volledig verantwoordelijk voor indicatie, dosering en uiteindelijke inhoud van het uitvoeringsverzoek. Ik lees het nog één keer door voordat ik hem onderteken.";
   const legalConfirmationTextMidazolam =
     "Deze tool geeft een suggestie op basis van de Pallialine-richtlijn Palliatieve sedatie (juni 2022). Ik blijf als voorschrijver volledig verantwoordelijk voor indicatie, dosering en uiteindelijke inhoud van het uitvoeringsverzoek. Ik lees het nog één keer door voordat ik hem onderteken.";
+  const legalConfirmationText = isMorfine
+    ? legalConfirmationTextMorfine
+    : legalConfirmationTextMidazolam;
+  const isConfirmed = isMorfine ? confirmMorfinePdf : confirmMidazolamPdf;
+  const setConfirmed = isMorfine
+    ? onToggleConfirmMorfinePdf
+    : onToggleConfirmMidazolamPdf;
+  const canDownload = isMorfine ? canDownloadMorfine : canDownloadMidazolam;
+  const onDownload = isMorfine ? onDownloadMorfine : onDownloadMidazolam;
+  const errors = isMorfine ? morfineErrors : midazolamErrors;
 
   return (
     <section className="card">
-      {mode === "morfine" && (
-        <div className="stack">
-          <h2>Download uitvoeringsverzoek morfine</h2>
-          <div className="legal">
-            <p>{legalConfirmationTextMorfine}</p>
-            <label className="checkbox-line">
-              <input
-                type="checkbox"
-                checked={confirmMorfinePdf}
-                onChange={(event) => onToggleConfirmMorfinePdf(event.target.checked)}
-              />
-              ik begrijp het
-            </label>
-          </div>
-          <button
-            type="button"
-            disabled={!canDownloadMorfine || !confirmMorfinePdf}
-            onClick={onDownloadMorfine}
-          >
-            Download uitvoeringsverzoek morfine
-          </button>
-          {morfineErrors.length > 0 ? <small className="error">{morfineErrors.join(" ")}</small> : null}
+      <h2>{title}</h2>
+      <div className="stack">
+        <div className="legal">
+          <p>{legalConfirmationText}</p>
+          <label className="checkbox-line">
+            <input
+              type="checkbox"
+              checked={isConfirmed}
+              onChange={(event) => setConfirmed(event.target.checked)}
+            />
+            ik begrijp het
+          </label>
         </div>
-      )}
-      {mode === "midazolam" && (
-        <div className="stack">
-          <h2>Download uitvoeringsverzoek midazolam</h2>
-          <div className="legal">
-            <p>{legalConfirmationTextMidazolam}</p>
-            <label className="checkbox-line">
-              <input
-                type="checkbox"
-                checked={confirmMidazolamPdf}
-                onChange={(event) => onToggleConfirmMidazolamPdf(event.target.checked)}
-              />
-              ik begrijp het
-            </label>
-          </div>
-          <button
-            type="button"
-            disabled={!canDownloadMidazolam || !confirmMidazolamPdf}
-            onClick={onDownloadMidazolam}
-          >
-            Download uitvoeringsverzoek midazolam
-          </button>
-          {midazolamErrors.length > 0 ? <small className="error">{midazolamErrors.join(" ")}</small> : null}
-        </div>
-      )}
+        <button type="button" disabled={!canDownload || !isConfirmed} onClick={onDownload}>
+          {title}
+        </button>
+        {errors.length > 0 ? <small className="error">{errors.join(" ")}</small> : null}
+      </div>
     </section>
   );
 }

@@ -98,12 +98,20 @@ function buildInbrengsetAdvice(): AdviceBlock {
   };
 }
 
-export function buildPrescriptionAdvice(state: AppFormState): AdviceBlock[] {
+export interface PrescriptionAdviceOptions {
+  includeMorfine: boolean;
+  includeMidazolam: boolean;
+}
+
+export function buildPrescriptionAdvice(
+  state: AppFormState,
+  options: PrescriptionAdviceOptions
+): AdviceBlock[] {
   const blocks: AdviceBlock[] = [];
-  if (state.general.mode === "morfine" || state.general.mode === "combination") {
+  if (options.includeMorfine) {
     blocks.push(buildMorfineAdvice(state));
   }
-  if (state.general.mode === "midazolam" || state.general.mode === "combination") {
+  if (options.includeMidazolam) {
     blocks.push(buildMidazolamAdvice(state));
     if (state.midazolam.cadPlacementAllowed) {
       blocks.push(buildCadAdvice(state), buildInbrengsetAdvice());
