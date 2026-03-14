@@ -14,15 +14,25 @@ interface SavedOrganizationEntry {
   secureEmail: string;
 }
 
+interface SavedPharmacyEntry {
+  name: string;
+  phone: string;
+}
+
 export function GeneralSection({ data, onChange }: GeneralSectionProps) {
   const PHYSICIAN_STORAGE_KEY = "pallsedatie.savedPhysician";
   const ORGANIZATION_STORAGE_KEY = "pallsedatie.savedOrganizations";
+  const PHARMACY_STORAGE_KEY = "pallsedatie.savedPharmacies";
   const hasLoadedSavedPhysician = useRef(false);
   const hasLoadedSavedOrganizations = useRef(false);
+  const hasLoadedSavedPharmacies = useRef(false);
   const [lastSavedPhysicianPayload, setLastSavedPhysicianPayload] = useState("");
   const [lastSavedOrganizationPayload, setLastSavedOrganizationPayload] = useState("");
+  const [lastSavedPharmacyPayload, setLastSavedPharmacyPayload] = useState("");
   const [savedOrganizations, setSavedOrganizations] = useState<SavedOrganizationEntry[]>([]);
+  const [savedPharmacies, setSavedPharmacies] = useState<SavedPharmacyEntry[]>([]);
   const [organizationMenuOpen, setOrganizationMenuOpen] = useState(false);
+  const [pharmacyMenuOpen, setPharmacyMenuOpen] = useState(false);
   const physicianRole = data.physician.role ?? "huisarts";
   const currentPhysicianPayload = useMemo(
     () => JSON.stringify(data.physician),
@@ -37,12 +47,23 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       }),
     [data.organization, data.organizationPhone, data.organizationSecureEmail]
   );
+  const currentPharmacyPayload = useMemo(
+    () =>
+      JSON.stringify({
+        name: data.pharmacy,
+        phone: data.pharmacyPhone
+      }),
+    [data.pharmacy, data.pharmacyPhone]
+  );
   const physicianIsSaved =
     lastSavedPhysicianPayload.length > 0 &&
     currentPhysicianPayload === lastSavedPhysicianPayload;
   const organizationIsSaved =
     lastSavedOrganizationPayload.length > 0 &&
     currentOrganizationPayload === lastSavedOrganizationPayload;
+  const pharmacyIsSaved =
+    lastSavedPharmacyPayload.length > 0 &&
+    currentPharmacyPayload === lastSavedPharmacyPayload;
   const filteredOrganizations = useMemo(() => {
     const needle = data.organization.trim().toLowerCase();
     if (!needle) {
@@ -52,6 +73,15 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       entry.name.toLowerCase().includes(needle)
     );
   }, [data.organization, savedOrganizations]);
+  const filteredPharmacies = useMemo(() => {
+    const needle = data.pharmacy.trim().toLowerCase();
+    if (!needle) {
+      return savedPharmacies;
+    }
+    return savedPharmacies.filter((entry) =>
+      entry.name.toLowerCase().includes(needle)
+    );
+  }, [data.pharmacy, savedPharmacies]);
   const requiredLabel = (text: string) => (
     <>
       {text} <span className="required-mark">*</span>
@@ -125,6 +155,28 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
     }
   }, []);
 
+  useEffect(() => {
+    if (hasLoadedSavedPharmacies.current || typeof window === "undefined") {
+      return;
+    }
+    hasLoadedSavedPharmacies.current = true;
+    const rawSavedPharmacies = window.localStorage.getItem(PHARMACY_STORAGE_KEY);
+    if (!rawSavedPharmacies) {
+      return;
+    }
+    try {
+      const parsed = JSON.parse(rawSavedPharmacies) as SavedPharmacyEntry[];
+      const valid = parsed.filter(
+        (entry) =>
+          typeof entry?.name === "string" &&
+          typeof entry?.phone === "string"
+      );
+      setSavedPharmacies(valid);
+    } catch {
+      // Ignore invalid local data; user can save again.
+    }
+  }, []);
+
   const savePhysicianToBrowser = () => {
     if (typeof window === "undefined") {
       return;
@@ -168,6 +220,41 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       organizationSecureEmail: entry.secureEmail
     });
     setOrganizationMenuOpen(false);
+  };
+
+  const savePharmacyToBrowser = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const name = data.pharmacy.trim();
+    if (!name) {
+      return;
+    }
+    const entryToSave: SavedPharmacyEntry = {
+      name,
+      phone: data.pharmacyPhone.trim()
+    };
+    const nextPharmacies = [...savedPharmacies];
+    const existingIndex = nextPharmacies.findIndex(
+      (entry) => entry.name.toLowerCase() === name.toLowerCase()
+    );
+    if (existingIndex >= 0) {
+      nextPharmacies[existingIndex] = entryToSave;
+    } else {
+      nextPharmacies.push(entryToSave);
+    }
+    window.localStorage.setItem(PHARMACY_STORAGE_KEY, JSON.stringify(nextPharmacies));
+    setSavedPharmacies(nextPharmacies);
+    setLastSavedPharmacyPayload(JSON.stringify(entryToSave));
+  };
+
+  const selectSavedPharmacy = (entry: SavedPharmacyEntry) => {
+    onChange({
+      ...data,
+      pharmacy: entry.name,
+      pharmacyPhone: entry.phone
+    });
+    setPharmacyMenuOpen(false);
   };
 
   return (
@@ -316,19 +403,19 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               }
             />
           </FormField>
-          <FormField label="Plaats">
-            <input
-              value={data.physician.place}
-              onChange={(event) =>
-                onChange({ ...data, physician: { ...data.physician, place: event.target.value } })
-              }
-            />
-          </FormField>
           <FormField label="Praktijk">
             <input
               value={data.physician.practice}
               onChange={(event) =>
                 onChange({ ...data, physician: { ...data.physician, practice: event.target.value } })
+              }
+            />
+          </FormField>
+          <FormField label="Plaats">
+            <input
+              value={data.physician.place}
+              onChange={(event) =>
+                onChange({ ...data, physician: { ...data.physician, place: event.target.value } })
               }
             />
           </FormField>
@@ -345,6 +432,14 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               value={data.physician.anwPhone}
               onChange={(event) =>
                 onChange({ ...data, physician: { ...data.physician, anwPhone: event.target.value } })
+              }
+            />
+          </FormField>
+          <FormField label="Praktijkadres">
+            <input
+              value={data.physician.practiceAddress}
+              onChange={(event) =>
+                onChange({ ...data, physician: { ...data.physician, practiceAddress: event.target.value } })
               }
             />
           </FormField>
@@ -413,11 +508,52 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
         </div>
       </div>
 
-      <div className="general-group">
-        <SectionHeader icon="💊" title="Apotheek" />
+      <div className="general-group general-group--allow-overflow">
+        <SectionHeader
+          icon="💊"
+          title="Apotheek"
+          action={
+            <button
+              type="button"
+              className="header-action-button"
+              title="apotheek opslaan in browser"
+              aria-label="apotheek opslaan in browser"
+              onClick={savePharmacyToBrowser}
+            >
+              {pharmacyIsSaved ? "✅" : "💾"}
+            </button>
+          }
+        />
         <div className="grid-2">
           <FormField label="Naam apotheek">
-            <input value={data.pharmacy} onChange={(event) => onChange({ ...data, pharmacy: event.target.value })} />
+            <div
+              className="autocomplete-wrapper"
+              onBlur={() => setTimeout(() => setPharmacyMenuOpen(false), 120)}
+            >
+              <input
+                value={data.pharmacy}
+                onFocus={() => setPharmacyMenuOpen(true)}
+                onChange={(event) => {
+                  onChange({ ...data, pharmacy: event.target.value });
+                  setPharmacyMenuOpen(true);
+                }}
+              />
+              {pharmacyMenuOpen && filteredPharmacies.length > 0 ? (
+                <div className="autocomplete-menu">
+                  {filteredPharmacies.map((entry) => (
+                    <button
+                      key={entry.name.toLowerCase()}
+                      type="button"
+                      className="autocomplete-item"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => selectSavedPharmacy(entry)}
+                    >
+                      {entry.name}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </FormField>
           <FormField label="Telefoon apotheek">
             <input
@@ -429,7 +565,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <SectionHeader icon="⚙" title="Weergave en footer" />
+        <SectionHeader icon="⚙" title="Weergave uitvoeringsverzoek" />
         <div className="stack">
           <label className="checkbox-line">
             <input
@@ -442,12 +578,10 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
           <label className="checkbox-line">
             <input
               type="checkbox"
-              checked={!data.includeGeneratedByFooter}
-              onChange={(event) =>
-                onChange({ ...data, includeGeneratedByFooter: !event.target.checked })
-              }
+              checked={data.hideLogoOnPdf}
+              onChange={(event) => onChange({ ...data, hideLogoOnPdf: event.target.checked })}
             />
-            toon "gegenereerd via pallsedatie.nl" niet op uitvoeringsverzoek
+            verberg pallsedatie-logo op uitvoeringsverzoek
           </label>
         </div>
       </div>

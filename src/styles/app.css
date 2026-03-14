@@ -406,6 +406,32 @@ textarea {
   margin: 0.75rem 0;
 }
 
+.conversion-table-wrapper {
+  overflow-x: auto;
+}
+
+.conversion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.conversion-table th,
+.conversion-table td {
+  border: 1px solid var(--brand-navy-border);
+  padding: 0.35rem 0.45rem;
+  text-align: left;
+}
+
+.conversion-table th {
+  background: var(--brand-navy-soft);
+  color: var(--brand-navy);
+}
+
+.conversion-table tfoot td {
+  font-weight: 600;
+}
+
 .midazolam-advice-window {
   display: grid;
   gap: 0.65rem;

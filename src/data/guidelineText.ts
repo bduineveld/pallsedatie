@@ -4,20 +4,15 @@ export const legalConfirmationText =
 export const uiDisclaimer =
   "Ondersteunende tool voor voorschrijvers. Controleer altijd klinische context en richtlijntoepassing.";
 
-export const pdfFooterLines = [
-  "Gebaseerd op Pallialine/Palliaweb:",
-  "- Pijn bij gevorderde stadia van COPD of hartfalen (juni 2019)",
-  "- Palliatieve sedatie (juni 2022)"
-];
-
 export const morfineGuidelinePanelText = [
+  "Gebaseerd op Pallialine-richtlijn: Pijn bij patiënten met kanker (december 2019).",
   "Conversie gebeurt per bestaand opioïd naar morfine s.c./i.v. mg/24 uur.",
   "Daarna worden alle individuele conversies opgeteld.",
   "De tool toont 100% equianalgetisch en 75% richtlijnadvies."
 ];
 
 export const midazolamGuidelinePanelText = [
-  "Midazolam suggesties zijn gebaseerd op Pallialine/Palliaweb palliatieve sedatie (juni 2022).",
+  "Gebaseerd op Pallialine-richtlijn: Palliatieve sedatie (juni 2022).",
   "Boluslogica gebruikt niet automatisch een algemene 1/6-regel zonder onderbouwing.",
   "Start-/continue-/boluswaarden blijven altijd handmatig aanpasbaar."
 ];

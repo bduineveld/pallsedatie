@@ -91,13 +91,29 @@ export function MorfineTab({
   const unitForOpioid = (opioid: OpioidKind): string =>
     opioid === "fentanyl_patch" || opioid === "buprenorfine_patch" ? "mcg/uur" : "mg/24u";
 
+  const buildContinuationAdviceFromExistingOpioids = (): string => {
+    if (data.existingOpioids.length === 0) {
+      return data.continuationAdvice;
+    }
+
+    const lines = data.existingOpioids.map((entry) => {
+      const label = opioidDisplayNames[entry.opioid].toLowerCase();
+      if (entry.opioid === "fentanyl_patch") {
+        return "Verwijder direct fentanylpleister.";
+      }
+      if (entry.opioid === "buprenorfine_patch") {
+        return "Verwijder direct buprenorfinepleister.";
+      }
+      return `Stop ${label}.`;
+    });
+
+    return lines.join("\n");
+  };
+
   const lockoutForExistingHours = data.ageOver70 || data.egfrUnder30 ? 6 : 4;
   const convertedItems = bundle.conversion.items.filter(
     (item) => !Number.isNaN(item.morphineScIvMgPer24h)
   );
-  const conversionSumExpression = convertedItems
-    .map((item) => formatMedicalNumber(item.morphineScIvMgPer24h))
-    .join("+");
   const hasMorfineRiskFactor = data.ageOver70 || data.egfrUnder30;
   const morfineRiskStripeClass =
     data.opioidInputMode === "naive" && !hasMorfineRiskFactor
@@ -113,7 +129,8 @@ export function MorfineTab({
       continueDoseMgPer24h: formatMedicalNumber(targetMgPer24h),
       startBolusMg: formatMedicalNumber(bolus),
       bolusMg: formatMedicalNumber(bolus),
-      lockoutHours: formatMedicalNumber(lockoutForExistingHours)
+      lockoutHours: formatMedicalNumber(lockoutForExistingHours),
+      continuationAdvice: buildContinuationAdviceFromExistingOpioids()
     });
   };
 
@@ -331,22 +348,44 @@ export function MorfineTab({
                 </p>
               ) : (
                 <>
-                  {convertedItems.map((item) => (
-                    <p key={`eq-${item.opioid}-${item.sourceDose}`}>
-                      {opioidDisplayNames[item.opioid]} {formatMedicalNumber(item.sourceDose)} {item.sourceUnit} ↔ morfine s.c.{" "}
-                      {formatMedicalNumber(item.morphineScIvMgPer24h)} mg/24u
-                    </p>
-                  ))}
-                  <p>
-                    100%: morfine ({conversionSumExpression || "0"}=){formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h)} mg/24u,
-                    bolus ({formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h)}÷6=)
-                    {formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h / 6)} mg
-                  </p>
-                  <p>
-                    75% richtlijnadvies: {formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h)} mg/24u,
-                    bolus ({formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h)}÷6=)
-                    {formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h / 6)} mg
-                  </p>
+                  <div className="conversion-table-wrapper">
+                    <table className="conversion-table">
+                      <thead>
+                        <tr>
+                          <th>Huidig opioïd</th>
+                          <th>Dosering</th>
+                          <th>Morfine s.c.</th>
+                          <th>Bolusdosis (⅙)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {convertedItems.map((item) => (
+                          <tr key={`eq-${item.opioid}-${item.sourceDose}`}>
+                            <td>{opioidDisplayNames[item.opioid]}</td>
+                            <td>
+                              {formatMedicalNumber(item.sourceDose)} {item.sourceUnit}
+                            </td>
+                            <td>{formatMedicalNumber(item.morphineScIvMgPer24h)} mg/24u</td>
+                            <td />
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td>Totaal</td>
+                          <td />
+                          <td>{formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h)} mg/24u</td>
+                          <td>{formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h / 6)} mg</td>
+                        </tr>
+                        <tr>
+                          <td>75% (richtlijn)</td>
+                          <td />
+                          <td>{formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h)} mg/24u</td>
+                          <td>{formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h / 6)} mg</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                   {bundle.conversion.items
                     .filter((item) => item.usedInterpolation && item.interpolationNote)
                     .map((item) => (

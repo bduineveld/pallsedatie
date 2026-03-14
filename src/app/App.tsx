@@ -179,19 +179,6 @@ export function App() {
       ) : null}
       {activeTab === "recepten" ? (
         <>
-          <PdfActions
-            mode="combination"
-            confirmMorfinePdf={confirmMorfinePdf}
-            confirmMidazolamPdf={confirmMidazolamPdf}
-            onToggleConfirmMorfinePdf={setConfirmMorfinePdf}
-            onToggleConfirmMidazolamPdf={setConfirmMidazolamPdf}
-            canDownloadMorfine={readiness.morfineReady.valid}
-            canDownloadMidazolam={readiness.midazolamReady.valid}
-            morfineErrors={readiness.morfineReady.errors}
-            midazolamErrors={readiness.midazolamReady.errors}
-            onDownloadMorfine={() => downloadMorfinePdf(state)}
-            onDownloadMidazolam={() => downloadMidazolamPdf(state)}
-          />
           <PrescriptionAdvice blocks={adviceBlocks} />
         </>
       ) : null}

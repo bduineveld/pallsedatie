@@ -34,6 +34,7 @@ export interface PhysicianData {
   fullName: string;
   practice: string;
   place: string;
+  practiceAddress: string;
   date: string;
   phone: string;
   anwPhone: string;
@@ -49,7 +50,7 @@ export interface GeneralFormData {
   pharmacy: string;
   pharmacyPhone: string;
   showMlPerHour: boolean;
-  includeGeneratedByFooter: boolean;
+  hideLogoOnPdf: boolean;
 }
 
 export interface ExistingOpioidEntry {

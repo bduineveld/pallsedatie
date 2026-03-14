@@ -1,5 +1,4 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import { pdfFooterLines } from "../data/guidelineText";
 import { AppFormState } from "../types/models";
 import { formatDateNl } from "./formatters";
 import { getPallsedatieLogoPngBytes } from "./logoAsset";
@@ -7,6 +6,27 @@ import { loadSourceSansFonts } from "./sourceSansFonts";
 
 function safe(value: string): string {
   return value.trim() || "-";
+}
+
+function formatCompactNumber(value: number): string {
+  return value.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function buildContinueDoseLabel(
+  doseText: string,
+  concentrationMgPerMl: number,
+  showMlPerHour: boolean
+): string {
+  const safeDoseText = safe(doseText);
+  if (!showMlPerHour) {
+    return `${safeDoseText} mg/24u`;
+  }
+  const doseNumber = Number.parseFloat(doseText.replace(",", "."));
+  if (!Number.isFinite(doseNumber) || concentrationMgPerMl <= 0) {
+    return `${safeDoseText} mg/24u`;
+  }
+  const mlPerHour = doseNumber / 24 / concentrationMgPerMl;
+  return `${safeDoseText} mg/24u (=${formatCompactNumber(mlPerHour)} ml/uur)`;
 }
 
 function physicianRoleLabel(
@@ -79,7 +99,6 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     [state.general.patient.gender.trim(), state.general.patient.fullName.trim()].filter(Boolean).join(" ")
   );
 
-  page.drawText("v1.0 pallsedatie.nl", { x: marginX, y: 816, size: 8, font: fonts.regular });
   page.drawText("Uitvoeringsverzoek Morfine", {
     x: marginX,
     y: 792,
@@ -88,12 +107,14 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
   });
   const logoWidth = 138;
   const logoHeight = (logoImage.height / logoImage.width) * logoWidth;
-  page.drawImage(logoImage, {
-    x: pageWidth - marginX - logoWidth,
-    y: 790,
-    width: logoWidth,
-    height: logoHeight
-  });
+  if (!state.general.hideLogoOnPdf) {
+    page.drawImage(logoImage, {
+      x: pageWidth - marginX - logoWidth,
+      y: 790,
+      width: logoWidth,
+      height: logoHeight
+    });
+  }
 
   const topY = 768;
   const topFieldStartY = 748;
@@ -131,7 +152,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
   drawSectionTitle(physicianRoleLabel(state.general.physician.role), rightX, topY);
   drawColumnField("Naam", safe(state.general.physician.fullName), rightX, topFieldStartY);
   drawColumnField("Praktijk", safe(state.general.physician.practice), rightX, topFieldStartY - topLineGap);
-  drawColumnField("Adres", safe(state.general.patient.address), rightX, topFieldStartY - 2 * topLineGap);
+  drawColumnField("Adres", safe(state.general.physician.practiceAddress), rightX, topFieldStartY - 2 * topLineGap);
   drawColumnField("Plaats", safe(state.general.physician.place), rightX, topFieldStartY - 3 * topLineGap);
   drawColumnField("Telefoon", safe(state.general.physician.phone), rightX, topFieldStartY - 4 * topLineGap);
   drawColumnField("Spoednr ANW", safe(state.general.physician.anwPhone), rightX, topFieldStartY - 5 * topLineGap);
@@ -162,7 +183,15 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     170
   );
   y -= 15;
-  drawWideField("Continue dosering", `${safe(state.morfine.continueDoseMgPer24h)} mg/24u`, y);
+  drawWideField(
+    "Continue dosering",
+    buildContinueDoseLabel(
+      state.morfine.continueDoseMgPer24h,
+      state.morfine.concentrationMgPerMl,
+      state.general.showMlPerHour
+    ),
+    y
+  );
   y -= 15;
   drawWideField("Bolus dosering", `${safe(state.morfine.bolusMg)} mg`, y);
   y -= 15;
@@ -193,18 +222,6 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
   y -= 15;
   drawWideField("Handtekening", "", y);
 
-  let footerY = 52;
-  for (const footerLine of pdfFooterLines) {
-    page.drawText(footerLine, { x: 36, y: footerY, size: 8, font: fonts.regular });
-    footerY -= 10;
-  }
-  if (state.general.includeGeneratedByFooter) {
-    page.drawText("gegenereerd via pallsedatie.nl", {
-      x: 36,
-      y: footerY,
-      size: 8,
-      font: fonts.regular
-    });
-  }
+  page.drawText("v1.0 pallsedatie.nl", { x: 36, y: 42, size: 8, font: fonts.regular });
   return pdfDoc.save();
 }

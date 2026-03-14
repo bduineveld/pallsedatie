@@ -25,15 +25,22 @@ export function PdfActions({
   onDownloadMorfine,
   onDownloadMidazolam
 }: PdfActionsProps) {
-  const legalConfirmationText =
-    "Deze tool geeft een suggestie op basis van de Pallialine/Palliaweb-richtlijnen. Ik blijf als voorschrijver volledig verantwoordelijk voor indicatie, dosering en uiteindelijke inhoud van het uitvoeringsverzoek. Ik lees het nog één keer door voordat ik hem onderteken.";
+  if (mode === "combination") {
+    return null;
+  }
+
+  const legalConfirmationTextMorfine =
+    "Deze tool geeft een suggestie op basis van de Pallialine-richtlijn Pijn bij patiënten met kanker (december 2019). Ik blijf als voorschrijver volledig verantwoordelijk voor indicatie, dosering en uiteindelijke inhoud van het uitvoeringsverzoek. Ik lees het nog één keer door voordat ik hem onderteken.";
+  const legalConfirmationTextMidazolam =
+    "Deze tool geeft een suggestie op basis van de Pallialine-richtlijn Palliatieve sedatie (juni 2022). Ik blijf als voorschrijver volledig verantwoordelijk voor indicatie, dosering en uiteindelijke inhoud van het uitvoeringsverzoek. Ik lees het nog één keer door voordat ik hem onderteken.";
+
   return (
     <section className="card">
-      <h2>Uitvoeringsverzoek PDF</h2>
-      {(mode === "morfine" || mode === "combination") && (
+      {mode === "morfine" && (
         <div className="stack">
+          <h2>Download uitvoeringsverzoek morfine</h2>
           <div className="legal">
-            <p>{legalConfirmationText}</p>
+            <p>{legalConfirmationTextMorfine}</p>
             <label className="checkbox-line">
               <input
                 type="checkbox"
@@ -53,10 +60,11 @@ export function PdfActions({
           {morfineErrors.length > 0 ? <small className="error">{morfineErrors.join(" ")}</small> : null}
         </div>
       )}
-      {(mode === "midazolam" || mode === "combination") && (
+      {mode === "midazolam" && (
         <div className="stack">
+          <h2>Download uitvoeringsverzoek midazolam</h2>
           <div className="legal">
-            <p>{legalConfirmationText}</p>
+            <p>{legalConfirmationTextMidazolam}</p>
             <label className="checkbox-line">
               <input
                 type="checkbox"

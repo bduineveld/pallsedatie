@@ -26,6 +26,7 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
         fullName: "",
         practice: "",
         place: "",
+        practiceAddress: "",
         date: today,
         phone: "",
         anwPhone: ""
@@ -36,7 +37,7 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
       pharmacy: "",
       pharmacyPhone: "",
       showMlPerHour: false,
-      includeGeneratedByFooter: true
+      hideLogoOnPdf: false
     },
     morfine: {
       opioidInputMode: "",

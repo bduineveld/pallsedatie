@@ -1,5 +1,4 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import { pdfFooterLines } from "../data/guidelineText";
 import { AppFormState } from "../types/models";
 import { formatDateNl } from "./formatters";
 import { getPallsedatieLogoPngBytes } from "./logoAsset";
@@ -7,6 +6,27 @@ import { loadSourceSansFonts } from "./sourceSansFonts";
 
 function safe(value: string): string {
   return value.trim() || "-";
+}
+
+function formatCompactNumber(value: number): string {
+  return value.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function buildContinueDoseLabel(
+  doseText: string,
+  concentrationMgPerMl: number,
+  showMlPerHour: boolean
+): string {
+  const safeDoseText = safe(doseText);
+  if (!showMlPerHour) {
+    return `${safeDoseText} mg/24u`;
+  }
+  const doseNumber = Number.parseFloat(doseText.replace(",", "."));
+  if (!Number.isFinite(doseNumber) || concentrationMgPerMl <= 0) {
+    return `${safeDoseText} mg/24u`;
+  }
+  const mlPerHour = doseNumber / 24 / concentrationMgPerMl;
+  return `${safeDoseText} mg/24u (=${formatCompactNumber(mlPerHour)} ml/uur)`;
 }
 
 function physicianRoleLabel(
@@ -74,12 +94,20 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     drawField(label, value, x, y, labelWidth, x + columnWidth - 2);
   const drawWideField = (label: string, value: string, y: number, labelWidth = 170) =>
     drawField(label, value, leftX, y, labelWidth, marginX + contentWidth);
+  const drawWideContinuation = (value: string, y: number, labelWidth = 170) => {
+    page.drawText(value, { x: leftX + labelWidth, y, size: 10, font: fonts.regular });
+    page.drawLine({
+      start: { x: leftX + labelWidth, y: y - 2 },
+      end: { x: marginX + contentWidth, y: y - 2 },
+      thickness: 0.3,
+      color: lineColor
+    });
+  };
 
   const patientName = safe(
     [state.general.patient.gender.trim(), state.general.patient.fullName.trim()].filter(Boolean).join(" ")
   );
 
-  page.drawText("v1.0 pallsedatie.nl", { x: marginX, y: 816, size: 8, font: fonts.regular });
   page.drawText("Uitvoeringsverzoek Midazolam", {
     x: marginX,
     y: 792,
@@ -88,12 +116,14 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   });
   const logoWidth = 138;
   const logoHeight = (logoImage.height / logoImage.width) * logoWidth;
-  page.drawImage(logoImage, {
-    x: pageWidth - marginX - logoWidth,
-    y: 790,
-    width: logoWidth,
-    height: logoHeight
-  });
+  if (!state.general.hideLogoOnPdf) {
+    page.drawImage(logoImage, {
+      x: pageWidth - marginX - logoWidth,
+      y: 790,
+      width: logoWidth,
+      height: logoHeight
+    });
+  }
 
   const topY = 768;
   const topFieldStartY = 748;
@@ -131,7 +161,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   drawSectionTitle(physicianRoleLabel(state.general.physician.role), rightX, topY);
   drawColumnField("Naam", safe(state.general.physician.fullName), rightX, topFieldStartY);
   drawColumnField("Praktijk", safe(state.general.physician.practice), rightX, topFieldStartY - topLineGap);
-  drawColumnField("Adres", safe(state.general.patient.address), rightX, topFieldStartY - 2 * topLineGap);
+  drawColumnField("Adres", safe(state.general.physician.practiceAddress), rightX, topFieldStartY - 2 * topLineGap);
   drawColumnField("Plaats", safe(state.general.physician.place), rightX, topFieldStartY - 3 * topLineGap);
   drawColumnField("Telefoon", safe(state.general.physician.phone), rightX, topFieldStartY - 4 * topLineGap);
   drawColumnField("Spoednr ANW", safe(state.general.physician.anwPhone), rightX, topFieldStartY - 5 * topLineGap);
@@ -147,7 +177,13 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   drawColumnField("Telefoon", safe(state.general.pharmacyPhone), rightX, orgTitleY - 32);
 
   let y = orgTitleY - 74;
-  drawWideField("Uit te voeren handeling", "Aansluiten medicatie via sc/iv infuuspomp", y, 170);
+  if (state.midazolam.cadPlacementAllowed) {
+    drawWideField("Uit te voeren handeling", "- Aansluiten medicatie via sc/iv infuuspomp", y, 170);
+    y -= 15;
+    drawWideContinuation(`- Plaatsen CAD (Maat: Ch ${state.midazolam.cadSizeCharriere})`, y, 170);
+  } else {
+    drawWideField("Uit te voeren handeling", "Aansluiten medicatie via sc/iv infuuspomp", y, 170);
+  }
   y -= 15;
   drawWideField("Startdatum", formatDateNl(state.midazolam.startDate), y);
   y -= 15;
@@ -164,15 +200,19 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   y -= 15;
   drawWideField("Start-/loadingdose", `${safe(state.midazolam.loadingDoseMg)} mg`, y);
   y -= 15;
-  drawWideField("Continue dosering", `${safe(state.midazolam.continueDoseMgPer24h)} mg/24u`, y);
+  drawWideField(
+    "Continue dosering",
+    buildContinueDoseLabel(
+      state.midazolam.continueDoseMgPer24h,
+      state.midazolam.concentrationMgPerMl,
+      state.general.showMlPerHour
+    ),
+    y
+  );
   y -= 15;
   drawWideField("Bolus dosering", `${safe(state.midazolam.bolusMg)} mg`, y);
   y -= 15;
   drawWideField("Lockout tijd", `${safe(state.midazolam.lockoutHours)} uur`, y);
-  y -= 15;
-  drawWideField("CAD toegestaan", state.midazolam.cadPlacementAllowed ? "Ja" : "Nee", y);
-  y -= 15;
-  drawWideField("CAD Charrière", `Ch ${state.midazolam.cadSizeCharriere}`, y);
   y -= 15;
   drawWideField(
     "Akkoord eerste ophoging met 50%",
@@ -189,18 +229,6 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   y -= 15;
   drawWideField("Handtekening", "", y);
 
-  let footerY = 52;
-  for (const footerLine of pdfFooterLines) {
-    page.drawText(footerLine, { x: 36, y: footerY, size: 8, font: fonts.regular });
-    footerY -= 10;
-  }
-  if (state.general.includeGeneratedByFooter) {
-    page.drawText("gegenereerd via pallsedatie.nl", {
-      x: 36,
-      y: footerY,
-      size: 8,
-      font: fonts.regular
-    });
-  }
+  page.drawText("v1.0 pallsedatie.nl", { x: 36, y: 42, size: 8, font: fonts.regular });
   return pdfDoc.save();
 }

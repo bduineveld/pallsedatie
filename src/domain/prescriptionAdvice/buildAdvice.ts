@@ -104,7 +104,10 @@ export function buildPrescriptionAdvice(state: AppFormState): AdviceBlock[] {
     blocks.push(buildMorfineAdvice(state));
   }
   if (state.general.mode === "midazolam" || state.general.mode === "combination") {
-    blocks.push(buildMidazolamAdvice(state), buildCadAdvice(state), buildInbrengsetAdvice());
+    blocks.push(buildMidazolamAdvice(state));
+    if (state.midazolam.cadPlacementAllowed) {
+      blocks.push(buildCadAdvice(state), buildInbrengsetAdvice());
+    }
   }
   return blocks;
 }
