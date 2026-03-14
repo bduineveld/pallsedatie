@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { midazolamConcentrations, productText } from "../data/concentrationOptions";
 import { midazolamGuidelinePanelText } from "../data/guidelineText";
 import { computeMidazolamSuggestionBundle } from "../domain/dosageSuggestions/midazolamSuggestions";
@@ -15,6 +16,30 @@ interface MidazolamTabProps {
   onDiagnosisBlur?: () => void;
 }
 
+const midazolamIndicationOptions = [
+  "terminale onrust",
+  "delier",
+  "ernstige dyspnoe",
+  "onbehandelbare pijn",
+  "misselijkheid/braken",
+  "ileus",
+  "ernstige angst"
+];
+
+function getIndicationSearchToken(value: string): string {
+  const parts = value.split(",");
+  return (parts[parts.length - 1] ?? "").trim().toLowerCase();
+}
+
+function applyIndicationSelection(currentValue: string, option: string): string {
+  const parts = currentValue.split(",");
+  const previousSelections = parts
+    .slice(0, -1)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return [...previousSelections, option].join(", ");
+}
+
 export function MidazolamTab({
   data,
   onChange,
@@ -23,6 +48,7 @@ export function MidazolamTab({
   onDiagnosisBlur
 }: MidazolamTabProps) {
   const bundle = computeMidazolamSuggestionBundle(data);
+  const [indicationMenuOpen, setIndicationMenuOpen] = useState(false);
   const requiredLabel = (text: string) => (
     <>
       {text} <span className="required-mark">*</span>
@@ -52,12 +78,19 @@ export function MidazolamTab({
     : bundle.adviceSummary.hasAnyRiskFactor
       ? "midazolam-advice-window--single"
       : "midazolam-advice-window--none";
+  const filteredIndications = useMemo(() => {
+    const needle = getIndicationSearchToken(data.indication);
+    if (!needle) {
+      return midazolamIndicationOptions;
+    }
+    return midazolamIndicationOptions.filter((option) => option.toLowerCase().includes(needle));
+  }, [data.indication]);
 
   return (
     <section className="card">
       <h2>Midazolam (Dormicum)</h2>
 
-      <div className="general-group">
+      <div className="general-group general-group--allow-overflow">
         <SectionHeader icon="📌" title="Reden" />
         <div className="general-group-body">
           <div className="grid-2">
@@ -72,7 +105,40 @@ export function MidazolamTab({
               />
             </FormField>
             <FormField label={requiredLabel("Indicatie / refractair symptoom")}>
-              <input value={data.indication} onChange={(event) => onChange({ ...data, indication: event.target.value })} />
+              <div
+                className="autocomplete-wrapper"
+                onBlur={() => setTimeout(() => setIndicationMenuOpen(false), 120)}
+              >
+                <input
+                  value={data.indication}
+                  onFocus={() => setIndicationMenuOpen(true)}
+                  onChange={(event) => {
+                    onChange({ ...data, indication: event.target.value });
+                    setIndicationMenuOpen(true);
+                  }}
+                />
+                {indicationMenuOpen && filteredIndications.length > 0 ? (
+                  <div className="autocomplete-menu">
+                    {filteredIndications.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        className="autocomplete-item"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          onChange({
+                            ...data,
+                            indication: applyIndicationSelection(data.indication, option)
+                          });
+                          setIndicationMenuOpen(false);
+                        }}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </FormField>
           </div>
         </div>

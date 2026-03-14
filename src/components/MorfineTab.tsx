@@ -35,6 +35,31 @@ const opioidOptions: { value: OpioidKind; label: string }[] = [
   { value: "methadon_oral", label: "Methadon oraal" }
 ];
 
+const morfineIndicationOptions = [
+  "instabiele pijn",
+  "frequente doorbraakpijn",
+  "slikproblemen",
+  "bewustzijnsdaling",
+  "misselijkheid/braken",
+  "ileus",
+  "ernstige dyspnoe",
+  "praktische reden"
+];
+
+function getIndicationSearchToken(value: string): string {
+  const parts = value.split(",");
+  return (parts[parts.length - 1] ?? "").trim().toLowerCase();
+}
+
+function applyIndicationSelection(currentValue: string, option: string): string {
+  const parts = currentValue.split(",");
+  const previousSelections = parts
+    .slice(0, -1)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return [...previousSelections, option].join(", ");
+}
+
 export function MorfineTab({
   data,
   onChange,
@@ -62,6 +87,7 @@ export function MorfineTab({
   const [pendingOpioid, setPendingOpioid] = useState<OpioidKind | "">("");
   const [pendingDose, setPendingDose] = useState("");
   const [opioidMenuOpen, setOpioidMenuOpen] = useState(false);
+  const [indicationMenuOpen, setIndicationMenuOpen] = useState(false);
 
   const conversionTableRows = [30, 60, 120, 180, 240, 360, 480].map((morphineOralDose) => {
     const getMatch = (opioid: OpioidKind) =>
@@ -87,6 +113,13 @@ export function MorfineTab({
       option.label.toLowerCase().startsWith(needle)
     );
   }, [opioidQuery]);
+  const filteredIndications = useMemo(() => {
+    const needle = getIndicationSearchToken(data.indication);
+    if (!needle) {
+      return morfineIndicationOptions;
+    }
+    return morfineIndicationOptions.filter((option) => option.toLowerCase().includes(needle));
+  }, [data.indication]);
 
   const unitForOpioid = (opioid: OpioidKind): string =>
     opioid === "fentanyl_patch" || opioid === "buprenorfine_patch" ? "mcg/uur" : "mg/24u";
@@ -168,7 +201,7 @@ export function MorfineTab({
     <section className="card">
       <h2>Morfine</h2>
 
-      <div className="general-group">
+      <div className="general-group general-group--allow-overflow">
         <SectionHeader icon="📌" title="Reden" />
         <div className="general-group-body">
           <div className="grid-2">
@@ -183,7 +216,40 @@ export function MorfineTab({
             />
           </FormField>
           <FormField label={requiredLabel("Indicatie / refractair symptoom")}>
-            <input value={data.indication} onChange={(event) => onChange({ ...data, indication: event.target.value })} />
+            <div
+              className="autocomplete-wrapper"
+              onBlur={() => setTimeout(() => setIndicationMenuOpen(false), 120)}
+            >
+              <input
+                value={data.indication}
+                onFocus={() => setIndicationMenuOpen(true)}
+                onChange={(event) => {
+                  onChange({ ...data, indication: event.target.value });
+                  setIndicationMenuOpen(true);
+                }}
+              />
+              {indicationMenuOpen && filteredIndications.length > 0 ? (
+                <div className="autocomplete-menu">
+                  {filteredIndications.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className="autocomplete-item"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        onChange({
+                          ...data,
+                          indication: applyIndicationSelection(data.indication, option)
+                        });
+                        setIndicationMenuOpen(false);
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </FormField>
           </div>
         </div>
