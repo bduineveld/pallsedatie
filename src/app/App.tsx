@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { defaultState } from "./defaultState";
 import { GeneralSection } from "../components/GeneralSection";
 import { MidazolamTab } from "../components/MidazolamTab";
@@ -13,9 +13,27 @@ import { downloadMorfinePdf, downloadMidazolamPdf } from "../pdf/pdfFactory";
 
 type AppTab = "algemeen" | "morfine" | "midazolam" | "recepten";
 
+function getTabFromHash(hash: string): AppTab | null {
+  const normalized = hash.replace(/^#/, "").trim();
+  if (
+    normalized === "algemeen" ||
+    normalized === "morfine" ||
+    normalized === "midazolam" ||
+    normalized === "recepten"
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
 export function App() {
   const [state, setState] = useState(defaultState);
-  const [activeTab, setActiveTab] = useState<AppTab>("algemeen");
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    if (typeof window === "undefined") {
+      return "algemeen";
+    }
+    return getTabFromHash(window.location.hash) ?? "algemeen";
+  });
   const [confirmMorfinePdf, setConfirmMorfinePdf] = useState(false);
   const [confirmMidazolamPdf, setConfirmMidazolamPdf] = useState(false);
   const [hasDownloadedMorfine, setHasDownloadedMorfine] = useState(false);
@@ -81,6 +99,40 @@ export function App() {
     }));
   };
 
+  const setTab = (tab: AppTab) => {
+    if (tab === activeTab) {
+      return;
+    }
+    const currentUrl = new URL(window.location.href);
+    currentUrl.hash = tab;
+    window.history.pushState({ tab }, "", currentUrl.toString());
+    setActiveTab(tab);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const currentHashTab = getTabFromHash(window.location.hash);
+    if (currentHashTab === activeTab) {
+      return;
+    }
+    const currentUrl = new URL(window.location.href);
+    currentUrl.hash = activeTab;
+    window.history.replaceState({ tab: activeTab }, "", currentUrl.toString());
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const onPopState = () => {
+      setActiveTab(getTabFromHash(window.location.hash) ?? "algemeen");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   return (
     <main className="app-shell">
       <header className="app-brand">
@@ -92,14 +144,14 @@ export function App() {
           <button
             type="button"
             className={`${activeTab === "algemeen" ? "active" : ""} ${algemeenComplete ? "is-complete" : ""}`.trim()}
-            onClick={() => setActiveTab("algemeen")}
+            onClick={() => setTab("algemeen")}
           >
             Algemeen
           </button>
           <button
             type="button"
             className={`${activeTab === "morfine" ? "active" : ""} ${readiness.morfineReady.valid ? "is-complete" : ""}`.trim()}
-            onClick={() => setActiveTab("morfine")}
+            onClick={() => setTab("morfine")}
           >
             <img src="/morfine.svg" alt="" className="button-icon" aria-hidden="true" />
             Morfine
@@ -107,7 +159,7 @@ export function App() {
           <button
             type="button"
             className={`${activeTab === "midazolam" ? "active" : ""} ${readiness.midazolamReady.valid ? "is-complete" : ""}`.trim()}
-            onClick={() => setActiveTab("midazolam")}
+            onClick={() => setTab("midazolam")}
           >
             <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
             Midazolam
@@ -115,7 +167,7 @@ export function App() {
           <button
             type="button"
             className={`${activeTab === "recepten" ? "active" : ""} tab-button-recepten`}
-            onClick={() => setActiveTab("recepten")}
+            onClick={() => setTab("recepten")}
           >
             Recepten
           </button>
@@ -124,11 +176,11 @@ export function App() {
         <>
           <GeneralSection data={state.general} onChange={handleGeneralChange} />
           <div className="flow-buttons">
-            <button type="button" onClick={() => setActiveTab("morfine")}>
+            <button type="button" onClick={() => setTab("morfine")}>
               <img src="/morfine.svg" alt="" className="button-icon" aria-hidden="true" />
               Door naar morfine
             </button>
-            <button type="button" onClick={() => setActiveTab("midazolam")}>
+            <button type="button" onClick={() => setTab("midazolam")}>
               <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
               Door naar midazolam
             </button>
@@ -167,11 +219,11 @@ export function App() {
             }}
           />
           <div className="flow-buttons">
-            <button type="button" onClick={() => setActiveTab("midazolam")}>
+            <button type="button" onClick={() => setTab("midazolam")}>
               <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
               Door naar midazolam
             </button>
-            <button type="button" onClick={() => setActiveTab("recepten")}>
+            <button type="button" onClick={() => setTab("recepten")}>
               Recepten
             </button>
           </div>
@@ -209,7 +261,7 @@ export function App() {
             }}
           />
           <div className="flow-buttons">
-            <button type="button" onClick={() => setActiveTab("recepten")}>
+            <button type="button" onClick={() => setTab("recepten")}>
               Recepten
             </button>
           </div>

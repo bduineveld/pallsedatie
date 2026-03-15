@@ -47,6 +47,7 @@ export function PdfActions({
   const canDownload = isMorfine ? canDownloadMorfine : canDownloadMidazolam;
   const onDownload = isMorfine ? onDownloadMorfine : onDownloadMidazolam;
   const errors = isMorfine ? morfineErrors : midazolamErrors;
+  const iconSrc = isMorfine ? "/morfine.svg" : "/midazolam.svg";
 
   return (
     <section className="card">
@@ -63,7 +64,13 @@ export function PdfActions({
             ik begrijp het
           </label>
         </div>
-        <button type="button" disabled={!canDownload || !isConfirmed} onClick={onDownload}>
+        <button
+          type="button"
+          className="pdf-download-button"
+          disabled={!canDownload || !isConfirmed}
+          onClick={onDownload}
+        >
+          <img src={iconSrc} alt="" className="button-icon" aria-hidden="true" />
           {title}
         </button>
         {errors.length > 0 ? <small className="error">{errors.join(" ")}</small> : null}

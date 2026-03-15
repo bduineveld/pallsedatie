@@ -69,16 +69,16 @@ function physicianRoleLabel(
 ): string {
   switch (role) {
     case "huisarts_io":
-      return "Huisarts i.o.";
+      return "Aanvragend Huisarts i.o.";
     case "basisarts":
-      return "Basisarts";
+      return "Aanvragend Basisarts";
     case "verpleegkundig_specialist":
-      return "Verpleegkundig Specialist";
+      return "Aanvragend Verpleegkundig Specialist";
     case "physician_assistant":
-      return "Physician Assistant";
+      return "Aanvragend Physician Assistant";
     case "huisarts":
     default:
-      return "Huisarts";
+      return "Aanvragend Huisarts";
   }
 }
 
@@ -637,7 +637,16 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   signatureFieldY -= 15;
   drawField("Handtekening", "", signatureBoxX + 8, signatureFieldY, 68, signatureValueEndX, true);
 
-    page.drawText("v1.0 pallsedatie.nl", { x: 36, y: 42 - (72 / 25.4) * 10, size: 8, font: fonts.regular, color: brandBlue });
+    const versionText = "v1.0 pallsedatie.nl";
+    const versionFontSize = 8;
+    const versionX = pageWidth - marginX - fonts.regular.widthOfTextAtSize(versionText, versionFontSize);
+    page.drawText(versionText, {
+      x: versionX,
+      y: 42 - (72 / 25.4) * 10,
+      size: versionFontSize,
+      font: fonts.regular,
+      color: brandBlue
+    });
   };
 
   renderMainPage();
