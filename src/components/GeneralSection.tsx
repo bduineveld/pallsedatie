@@ -3,11 +3,11 @@ import { uiDisclaimer } from "../data/guidelineText";
 import { GeneralFormData, PhysicianData } from "../types/models";
 import { FormField } from "./FormField";
 
-const calendarIcon = "/icons/healthicons/calendar.svg";
+const calendarIcon = "/icons/calendar-feather.svg";
 const personIcon = "/icons/healthicons/person.svg";
-const doctorIcon = "/icons/healthicons/doctor.svg";
-const hospitalIcon = "/icons/healthicons/ambulatory-clinic.svg";
-const pharmacyIcon = "/icons/healthicons/pharmacy.svg";
+const doctorIcon = "/icons/healthicons/doctor-24px.svg";
+const hospitalIcon = "/icons/healthicons/ambulatory-clinic-24px.svg";
+const pharmacyIcon = "/icons/healthicons/pharmacy-24px.svg";
 const settingsIcon = "/icons/healthicons/settings.svg";
 const saveIcon = "/icons/save-feather.svg";
 const savedCheckIcon = "/icons/check-square-feather.svg";

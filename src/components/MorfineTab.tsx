@@ -13,9 +13,9 @@ import { FormField } from "./FormField";
 import { GuidelinePanel } from "./GuidelinePanel";
 import { WarningBanner } from "./WarningBanner";
 
-const reasonIcon = "/icons/healthicons/inpatient.svg";
-const medicinesIcon = "/icons/healthicons/prescription-document.svg";
-const notesIcon = "/icons/healthicons/clinical-fe.svg";
+const reasonIcon = "/icons/healthicons/inpatient-24px.svg";
+const medicinesIcon = "/icons/healthicons/infusion-pump-24px.svg";
+const notesIcon = "/icons/healthicons/clinical-f-24px.svg";
 
 interface MorfineTabProps {
   data: MorfineFormData;

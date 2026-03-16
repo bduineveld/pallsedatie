@@ -8,9 +8,9 @@ import { MidazolamFormData } from "../types/models";
 import { FormField } from "./FormField";
 import { GuidelinePanel } from "./GuidelinePanel";
 
-const reasonIcon = "/icons/healthicons/inpatient.svg";
-const medicinesIcon = "/icons/healthicons/prescription-document.svg";
-const notesIcon = "/icons/healthicons/clinical-fe.svg";
+const reasonIcon = "/icons/healthicons/inpatient-24px.svg";
+const medicinesIcon = "/icons/healthicons/infusion-pump-24px.svg";
+const notesIcon = "/icons/healthicons/clinical-f-24px.svg";
 
 interface MidazolamTabProps {
   data: MidazolamFormData;
