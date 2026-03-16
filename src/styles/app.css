@@ -90,6 +90,8 @@ body {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 1rem 0.5rem;
+  min-height: 2.2rem;
+  line-height: 1;
   border: 1px solid var(--brand-navy-border);
   border-bottom: none;
   border-radius: 6px 6px 0 0;
@@ -126,7 +128,7 @@ body {
   color: #fff;
   border-color: var(--brand-navy);
   z-index: 2;
-  padding-bottom: 0.6rem;
+  padding-bottom: 0.5rem;
 }
 
 .paper-tabs button.active.is-complete::after {
@@ -136,6 +138,7 @@ body {
 /* Eerste section.card na de tabs: tabs zitten visueel vast aan deze kaart */
 .content-with-tabs .paper-tabs + .card {
   border-radius: 0 8px 8px 8px;
+  margin-top: 0.5px;
 }
 
 .tab-button-recepten {
@@ -166,6 +169,20 @@ body {
 .flow-buttons button:hover {
   background: #2d3a5c;
   border-color: #2d3a5c;
+}
+
+.secondary-action-button {
+  width: fit-content;
+  border: 1px solid var(--brand-navy-border);
+  background: #fff;
+  color: var(--brand-navy);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+}
+
+.secondary-action-button:hover {
+  background: var(--brand-navy-soft);
 }
 
 .pdf-download-button {
@@ -201,6 +218,15 @@ body {
 
 .paper-tabs .button-icon {
   margin-left: -5px;
+}
+
+.paper-tabs .settings-tab-icon {
+  margin-left: 0;
+  filter: brightness(0) invert(0.28);
+}
+
+.paper-tabs button.active .settings-tab-icon {
+  filter: brightness(0) invert(1);
 }
 
 .segment {
@@ -277,13 +303,16 @@ body {
 .general-group-icon {
   width: 1.45rem;
   height: 1.45rem;
-  /*border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.1);*/
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+}
+
+.general-group-icon-image {
+  width: 1.12rem;
+  height: 1.12rem;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .general-group-header-text {
@@ -306,6 +335,16 @@ body {
 
 .header-action-button:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.header-action-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  display: block;
+}
+
+.header-action-icon--saved {
+  color: #22c55e;
 }
 
 .autocomplete-wrapper {
@@ -688,4 +727,72 @@ textarea {
   border: 1px solid var(--brand-navy-border);
   padding: 0.75rem;
   border-radius: 6px;
+}
+
+.site-footer {
+  margin-top: 1.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--brand-navy-border);
+  color: #334155;
+}
+
+.site-footer-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.site-footer-tabs button {
+  border: 1px solid var(--brand-navy-border);
+  background: var(--brand-navy-soft);
+  color: var(--brand-navy);
+  border-radius: 6px 6px 0 0;
+  padding: 0.42rem 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: -1px;
+}
+
+.site-footer-tabs button:hover {
+  background: #dce3f2;
+}
+
+.site-footer-tabs button.active {
+  background: var(--brand-navy);
+  color: #fff;
+  border-color: var(--brand-navy);
+}
+
+.site-footer-panel {
+  border: 1px solid var(--brand-navy-border);
+  border-radius: 0 8px 8px 8px;
+  background: #fff;
+  padding: 0.85rem;
+}
+
+.site-footer-panel h2 {
+  margin: 0 0 0.45rem;
+  font-size: 0.98rem;
+  color: var(--brand-navy);
+}
+
+.site-footer-panel p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.site-footer-copyright {
+  margin: 0.9rem 0 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.site-footer-copyright a {
+  color: var(--brand-navy);
+  font-weight: 600;
+}
+
+.site-footer-copyright a:hover {
+  color: #2d3a5c;
 }

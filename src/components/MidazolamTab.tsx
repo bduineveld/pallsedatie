@@ -8,6 +8,10 @@ import { MidazolamFormData } from "../types/models";
 import { FormField } from "./FormField";
 import { GuidelinePanel } from "./GuidelinePanel";
 
+const reasonIcon = "/icons/healthicons/inpatient.svg";
+const medicinesIcon = "/icons/healthicons/prescription-document.svg";
+const notesIcon = "/icons/healthicons/clinical-fe.svg";
+
 interface MidazolamTabProps {
   data: MidazolamFormData;
   onChange: (data: MidazolamFormData) => void;
@@ -54,10 +58,10 @@ export function MidazolamTab({
       {text} <span className="required-mark">*</span>
     </>
   );
-  const SectionHeader = ({ icon, title }: { icon: string; title: string }) => (
+  const SectionHeader = ({ iconSrc, title }: { iconSrc: string; title: string }) => (
     <div className="general-group-header">
       <span className="general-group-icon" aria-hidden="true">
-        {icon}
+        <img src={iconSrc} alt="" className="general-group-icon-image" />
       </span>
       <div className="general-group-header-text">
         <h3 className="general-group-title">{title}</h3>
@@ -91,7 +95,7 @@ export function MidazolamTab({
       <h2>Uitvoeringsverzoek midazolam, eventueel verzoek CAD</h2>
 
       <div className="general-group general-group--allow-overflow">
-        <SectionHeader icon="📌" title="Reden" />
+        <SectionHeader iconSrc={reasonIcon} title="Reden" />
         <div className="general-group-body">
           <div className="grid-2">
             <FormField label={requiredLabel("Diagnose / ziektebeeld")}>
@@ -145,7 +149,7 @@ export function MidazolamTab({
       </div>
 
       <div className="general-group">
-        <SectionHeader icon="💉" title="Middel" />
+        <SectionHeader iconSrc={medicinesIcon} title="Middel" />
         <div className="general-group-body">
           <div className="grid-2">
             <FormField label="Middel en concentratie">
@@ -166,7 +170,12 @@ export function MidazolamTab({
                 </select>
             </FormField>
             <FormField label={requiredLabel("Startdatum")}>
-              <input type="date" value={data.startDate} onChange={(event) => onChange({ ...data, startDate: event.target.value })} />
+              <input
+                type="date"
+                lang="nl-NL"
+                value={data.startDate}
+                onChange={(event) => onChange({ ...data, startDate: event.target.value })}
+              />
             </FormField>
           </div>
 
@@ -304,7 +313,7 @@ export function MidazolamTab({
       </div>
 
       <div className="general-group">
-        <SectionHeader icon="📝" title="Overig" />
+        <SectionHeader iconSrc={notesIcon} title="Overig" />
         <div className="general-group-body">
           <div className="stack">
             <label className="checkbox-line">

@@ -24,6 +24,11 @@ describe("age helper", () => {
     expect(isOlderThan70("1950-01-01", today)).toBe(true);
   });
 
+  it("supports Dutch date input format (dd-mm-jjjj)", () => {
+    const today = new Date("2026-03-10");
+    expect(isOlderThan70("01-01-1950", today)).toBe(true);
+  });
+
   it("returns false when age is 70 or less", () => {
     const today = new Date("2026-03-10");
     expect(isOlderThan70("1956-03-10", today)).toBe(false);

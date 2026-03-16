@@ -3,6 +3,15 @@ import { uiDisclaimer } from "../data/guidelineText";
 import { GeneralFormData, PhysicianData } from "../types/models";
 import { FormField } from "./FormField";
 
+const calendarIcon = "/icons/healthicons/calendar.svg";
+const personIcon = "/icons/healthicons/person.svg";
+const doctorIcon = "/icons/healthicons/doctor.svg";
+const hospitalIcon = "/icons/healthicons/ambulatory-clinic.svg";
+const pharmacyIcon = "/icons/healthicons/pharmacy.svg";
+const settingsIcon = "/icons/healthicons/settings.svg";
+const saveIcon = "/icons/save-feather.svg";
+const savedCheckIcon = "/icons/check-square-feather.svg";
+
 interface GeneralSectionProps {
   data: GeneralFormData;
   onChange: (data: GeneralFormData) => void;
@@ -107,17 +116,17 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
     </>
   );
   const SectionHeader = ({
-    icon,
+    iconSrc,
     title,
     action
   }: {
-    icon: string;
+    iconSrc: string;
     title: string;
     action?: ReactNode;
   }) => (
     <div className="general-group-header">
       <span className="general-group-icon" aria-hidden="true">
-        {icon}
+        <img src={iconSrc} alt="" className="general-group-icon-image" />
       </span>
       <div className="general-group-header-text">
         <h3 className="general-group-title">{title}</h3>
@@ -284,11 +293,12 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       <p className="small-muted">{uiDisclaimer}</p>
 
       <div className="general-group">
-        <SectionHeader icon="🗓" title="Datum verzoek" />
+        <SectionHeader iconSrc={calendarIcon} title="Datum verzoek" />
         <div className="grid-2">
           <FormField label={requiredLabel("Datum uitvoeringsverzoek")}>
             <input
               type="date"
+              lang="nl-NL"
               value={data.physician.date}
               onChange={(event) =>
                 onChange({ ...data, physician: { ...data.physician, date: event.target.value } })
@@ -299,7 +309,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <SectionHeader icon="👤" title="Cliënt" />
+        <SectionHeader iconSrc={personIcon} title="Cliënt" />
         <div className="grid-2">
           <FormField label={requiredLabel("Naam")}>
             <input
@@ -312,6 +322,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
           <FormField label={requiredLabel("Geboortedatum")}>
             <input
               type="date"
+              lang="nl-NL"
               value={data.patient.birthDate}
               onChange={(event) =>
                 onChange({ ...data, patient: { ...data.patient, birthDate: event.target.value } })
@@ -376,7 +387,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
 
       <div className="general-group">
         <SectionHeader
-          icon="🩺"
+          iconSrc={doctorIcon}
           title="Aanvragend zorgverlener"
           action={
             <button
@@ -386,7 +397,11 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               aria-label="zorgverlener opslaan in browser"
               onClick={savePhysicianToBrowser}
             >
-              {physicianIsSaved ? "✅" : "💾"}
+              {physicianIsSaved ? (
+                <img src={savedCheckIcon} alt="" className="header-action-icon header-action-icon--saved" />
+              ) : (
+                <img src={saveIcon} alt="" className="header-action-icon" />
+              )}
             </button>
           }
         />
@@ -469,7 +484,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
 
       <div className="general-group general-group--allow-overflow">
         <SectionHeader
-          icon="🏠"
+          iconSrc={hospitalIcon}
           title="Uitvoerende zorginstelling"
           action={
             <button
@@ -479,7 +494,11 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               aria-label="zorginstelling opslaan in browser"
               onClick={saveOrganizationToBrowser}
             >
-              {organizationIsSaved ? "✅" : "💾"}
+              {organizationIsSaved ? (
+                <img src={savedCheckIcon} alt="" className="header-action-icon header-action-icon--saved" />
+              ) : (
+                <img src={saveIcon} alt="" className="header-action-icon" />
+              )}
             </button>
           }
         />
@@ -531,7 +550,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
 
       <div className="general-group general-group--allow-overflow">
         <SectionHeader
-          icon="💊"
+          iconSrc={pharmacyIcon}
           title="Apotheek"
           action={
             <button
@@ -541,7 +560,11 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               aria-label="apotheek opslaan in browser"
               onClick={savePharmacyToBrowser}
             >
-              {pharmacyIsSaved ? "✅" : "💾"}
+              {pharmacyIsSaved ? (
+                <img src={savedCheckIcon} alt="" className="header-action-icon header-action-icon--saved" />
+              ) : (
+                <img src={saveIcon} alt="" className="header-action-icon" />
+              )}
             </button>
           }
         />
@@ -586,7 +609,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <SectionHeader icon="⚙" title="Weergave uitvoeringsverzoek" />
+        <SectionHeader iconSrc={settingsIcon} title="Weergave uitvoeringsverzoek" />
         <div className="stack">
           <label className="checkbox-line">
             <input

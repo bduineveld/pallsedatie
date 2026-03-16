@@ -11,7 +11,10 @@ import { validateSharedForPdf } from "../domain/validation/formValidation";
 import { getPdfReadiness } from "../domain/validation/pdfReadiness";
 import { downloadMorfinePdf, downloadMidazolamPdf } from "../pdf/pdfFactory";
 
-type AppTab = "algemeen" | "morfine" | "midazolam" | "recepten";
+const settingsTabIcon = "/icons/healthicons/settings.svg";
+
+type AppTab = "algemeen" | "morfine" | "midazolam" | "recepten" | "instellingen";
+type FooterSectionId = "disclaimer" | "faq" | "privacy" | "bronnen" | "over";
 
 function getTabFromHash(hash: string): AppTab | null {
   const normalized = hash.replace(/^#/, "").trim();
@@ -19,14 +22,22 @@ function getTabFromHash(hash: string): AppTab | null {
     normalized === "algemeen" ||
     normalized === "morfine" ||
     normalized === "midazolam" ||
-    normalized === "recepten"
+    normalized === "recepten" ||
+    normalized === "instellingen"
   ) {
     return normalized;
   }
   return null;
 }
 
+function toHashForTab(tab: AppTab): string {
+  return tab === "algemeen" ? "" : tab;
+}
+
 export function App() {
+  const PHYSICIAN_STORAGE_KEY = "pallsedatie.savedPhysician";
+  const ORGANIZATION_STORAGE_KEY = "pallsedatie.savedOrganizations";
+  const PHARMACY_STORAGE_KEY = "pallsedatie.savedPharmacies";
   const [state, setState] = useState(defaultState);
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (typeof window === "undefined") {
@@ -38,6 +49,7 @@ export function App() {
   const [confirmMidazolamPdf, setConfirmMidazolamPdf] = useState(false);
   const [hasDownloadedMorfine, setHasDownloadedMorfine] = useState(false);
   const [hasDownloadedMidazolam, setHasDownloadedMidazolam] = useState(false);
+  const [activeFooterSection, setActiveFooterSection] = useState<FooterSectionId | null>(null);
   const [diagnosisDirty, setDiagnosisDirty] = useState({
     morfine: false,
     midazolam: false
@@ -52,6 +64,46 @@ export function App() {
     [state, hasDownloadedMorfine, hasDownloadedMidazolam]
   );
   const algemeenComplete = validateSharedForPdf(state).length === 0;
+  const footerSections = [
+    {
+      id: "disclaimer" as const,
+      heading: "Disclaimer",
+      body:
+        "Deze tool is bedoeld als ondersteuning bij het opstellen van een uitvoeringsverzoek. De uitkomst blijft een suggestie: de voorschrijver beoordeelt altijd zelf indicatie, dosering, contra-indicaties, interacties en de uiteindelijke tekst. Controleer daarom het document altijd volledig voordat je ondertekent of deelt."
+    },
+    {
+      id: "faq" as const,
+      heading: "FAQ",
+      body:
+        "Gebruik de tabs om stap voor stap gegevens in te vullen. Download pas na controle van dosering en tekst. In Instellingen kun je lokale profielgegevens wissen."
+    },
+    {
+      id: "privacy" as const,
+      heading: "Privacy",
+      body:
+        "Patiëntgegevens die je invult blijven in je browser en worden niet naar de server gestuurd. Er is geen serveropslag van patiëntinformatie. Alleen als je dat zelf kiest, worden profielgegevens zoals zorgverlener/instelling/apotheek lokaal op dit apparaat bewaard en kun je die in Instellingen weer wissen."
+    },
+    {
+      id: "bronnen" as const,
+      heading: "Bronnen & Richtlijnen",
+      body:
+        "Suggesties zijn gebaseerd op de gebruikte Pallialine-richtlijnen. Controleer altijd of de lokale protocollen en meest recente richtlijnversies overeenkomen."
+    },
+    {
+      id: "over" as const,
+      heading: "Over deze tool",
+      body:
+        "Pallsedatie.nl is bedoeld als praktische ondersteuning voor zorgprofessionals bij palliatieve zorg, met transparante invoer en lokaal gegenereerde output."
+    }
+  ];
+  const currentFooterSection =
+    activeFooterSection === null
+      ? null
+      : footerSections.find((section) => section.id === activeFooterSection) ?? null;
+  const startYear = 2026;
+  const currentYear = new Date().getFullYear();
+  const copyrightYearLabel =
+    currentYear === startYear ? String(startYear) : `${startYear}-${currentYear}`;
 
   const handleGeneralChange = (general: typeof state.general) => {
     const autoOver70 = isOlderThan70(general.patient.birthDate);
@@ -99,12 +151,27 @@ export function App() {
     }));
   };
 
+  const clearBrowserStoredProfiles = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const confirmed = window.confirm(
+      "Weet je zeker dat je alle lokaal opgeslagen zorgverlener-, instelling- en apotheekgegevens wilt wissen?"
+    );
+    if (!confirmed) {
+      return;
+    }
+    window.localStorage.removeItem(PHYSICIAN_STORAGE_KEY);
+    window.localStorage.removeItem(ORGANIZATION_STORAGE_KEY);
+    window.localStorage.removeItem(PHARMACY_STORAGE_KEY);
+  };
+
   const setTab = (tab: AppTab) => {
     if (tab === activeTab) {
       return;
     }
     const currentUrl = new URL(window.location.href);
-    currentUrl.hash = tab;
+    currentUrl.hash = toHashForTab(tab);
     window.history.pushState({ tab }, "", currentUrl.toString());
     setActiveTab(tab);
   };
@@ -118,7 +185,7 @@ export function App() {
       return;
     }
     const currentUrl = new URL(window.location.href);
-    currentUrl.hash = activeTab;
+    currentUrl.hash = toHashForTab(activeTab);
     window.history.replaceState({ tab: activeTab }, "", currentUrl.toString());
   }, [activeTab]);
 
@@ -135,12 +202,13 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <header className="app-brand">
-        <img src="/pallsedatie-logo.svg" alt="Pallsedatie logo" className="app-brand-logo" />
-        <h1 className="app-brand-subtitle">uitvoeringsverzoek generator</h1>
-      </header>
-      <div className="content-with-tabs">
-        <div className="paper-tabs">
+      <form autoComplete="off" onSubmit={(event) => event.preventDefault()}>
+        <header className="app-brand">
+          <img src="/pallsedatie-logo.svg" alt="Pallsedatie logo" className="app-brand-logo" />
+          <h1 className="app-brand-subtitle">uitvoeringsverzoek generator</h1>
+        </header>
+        <div className="content-with-tabs">
+          <div className="paper-tabs">
           <button
             type="button"
             className={`${activeTab === "algemeen" ? "active" : ""} ${algemeenComplete ? "is-complete" : ""}`.trim()}
@@ -171,108 +239,166 @@ export function App() {
           >
             Recepten
           </button>
+          <button
+            type="button"
+            className={`${activeTab === "instellingen" ? "active" : ""}`}
+            onClick={() => setTab("instellingen")}
+            title="Instellingen"
+            aria-label="Instellingen"
+          >
+            <img src={settingsTabIcon} alt="" className="button-icon settings-tab-icon" aria-hidden="true" />
+          </button>
         </div>
-      {activeTab === "algemeen" ? (
-        <>
-          <GeneralSection data={state.general} onChange={handleGeneralChange} />
-          <div className="flow-buttons">
-            <button type="button" onClick={() => setTab("morfine")}>
-              <img src="/morfine.svg" alt="" className="button-icon" aria-hidden="true" />
-              Door naar morfine
-            </button>
-            <button type="button" onClick={() => setTab("midazolam")}>
-              <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
-              Door naar midazolam
-            </button>
-          </div>
-        </>
-      ) : null}
+          {activeTab === "algemeen" ? (
+            <>
+              <GeneralSection data={state.general} onChange={handleGeneralChange} />
+              <div className="flow-buttons">
+                <button type="button" onClick={() => setTab("morfine")}>
+                  <img src="/morfine.svg" alt="" className="button-icon" aria-hidden="true" />
+                  Door naar morfine
+                </button>
+                <button type="button" onClick={() => setTab("midazolam")}>
+                  <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
+                  Door naar midazolam
+                </button>
+              </div>
+            </>
+          ) : null}
 
-      {activeTab === "morfine" ? (
-        <>
-          <MorfineTab
-            data={state.morfine}
-            onChange={handleMorfineChange}
-            showMlPerHour={state.general.showMlPerHour}
-            onDiagnosisUserChange={() =>
-              setDiagnosisDirty((prev) => ({ ...prev, morfine: true }))
-            }
-            onDiagnosisBlur={handleMorfineDiagnosisBlur}
-          />
-          <PdfActions
-            mode="morfine"
-            confirmMorfinePdf={confirmMorfinePdf}
-            confirmMidazolamPdf={confirmMidazolamPdf}
-            onToggleConfirmMorfinePdf={setConfirmMorfinePdf}
-            onToggleConfirmMidazolamPdf={setConfirmMidazolamPdf}
-            canDownloadMorfine={readiness.morfineReady.valid}
-            canDownloadMidazolam={readiness.midazolamReady.valid}
-            morfineErrors={readiness.morfineReady.errors}
-            midazolamErrors={readiness.midazolamReady.errors}
-            onDownloadMorfine={() => {
-              downloadMorfinePdf(state);
-              setHasDownloadedMorfine(true);
-            }}
-            onDownloadMidazolam={() => {
-              downloadMidazolamPdf(state);
-              setHasDownloadedMidazolam(true);
-            }}
-          />
-          <div className="flow-buttons">
-            <button type="button" onClick={() => setTab("midazolam")}>
-              <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
-              Door naar midazolam
-            </button>
-            <button type="button" onClick={() => setTab("recepten")}>
-              Recepten
-            </button>
-          </div>
-        </>
-      ) : null}
+          {activeTab === "morfine" ? (
+            <>
+              <MorfineTab
+                data={state.morfine}
+                onChange={handleMorfineChange}
+                showMlPerHour={state.general.showMlPerHour}
+                onDiagnosisUserChange={() =>
+                  setDiagnosisDirty((prev) => ({ ...prev, morfine: true }))
+                }
+                onDiagnosisBlur={handleMorfineDiagnosisBlur}
+              />
+              <PdfActions
+                mode="morfine"
+                confirmMorfinePdf={confirmMorfinePdf}
+                confirmMidazolamPdf={confirmMidazolamPdf}
+                onToggleConfirmMorfinePdf={setConfirmMorfinePdf}
+                onToggleConfirmMidazolamPdf={setConfirmMidazolamPdf}
+                canDownloadMorfine={readiness.morfineReady.valid}
+                canDownloadMidazolam={readiness.midazolamReady.valid}
+                morfineErrors={readiness.morfineReady.errors}
+                midazolamErrors={readiness.midazolamReady.errors}
+                onDownloadMorfine={() => {
+                  downloadMorfinePdf(state);
+                  setHasDownloadedMorfine(true);
+                }}
+                onDownloadMidazolam={() => {
+                  downloadMidazolamPdf(state);
+                  setHasDownloadedMidazolam(true);
+                }}
+              />
+              <div className="flow-buttons">
+                <button type="button" onClick={() => setTab("midazolam")}>
+                  <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
+                  Door naar midazolam
+                </button>
+                <button type="button" onClick={() => setTab("recepten")}>
+                  Recepten
+                </button>
+              </div>
+            </>
+          ) : null}
 
-      {activeTab === "midazolam" ? (
-        <>
-          <MidazolamTab
-            data={state.midazolam}
-            onChange={handleMidazolamChange}
-            showMlPerHour={state.general.showMlPerHour}
-            onDiagnosisUserChange={() =>
-              setDiagnosisDirty((prev) => ({ ...prev, midazolam: true }))
-            }
-            onDiagnosisBlur={handleMidazolamDiagnosisBlur}
-          />
-          <PdfActions
-            mode="midazolam"
-            confirmMorfinePdf={confirmMorfinePdf}
-            confirmMidazolamPdf={confirmMidazolamPdf}
-            onToggleConfirmMorfinePdf={setConfirmMorfinePdf}
-            onToggleConfirmMidazolamPdf={setConfirmMidazolamPdf}
-            canDownloadMorfine={readiness.morfineReady.valid}
-            canDownloadMidazolam={readiness.midazolamReady.valid}
-            morfineErrors={readiness.morfineReady.errors}
-            midazolamErrors={readiness.midazolamReady.errors}
-            onDownloadMorfine={() => {
-              downloadMorfinePdf(state);
-              setHasDownloadedMorfine(true);
-            }}
-            onDownloadMidazolam={() => {
-              downloadMidazolamPdf(state);
-              setHasDownloadedMidazolam(true);
-            }}
-          />
-          <div className="flow-buttons">
-            <button type="button" onClick={() => setTab("recepten")}>
-              Recepten
+          {activeTab === "midazolam" ? (
+            <>
+              <MidazolamTab
+                data={state.midazolam}
+                onChange={handleMidazolamChange}
+                showMlPerHour={state.general.showMlPerHour}
+                onDiagnosisUserChange={() =>
+                  setDiagnosisDirty((prev) => ({ ...prev, midazolam: true }))
+                }
+                onDiagnosisBlur={handleMidazolamDiagnosisBlur}
+              />
+              <PdfActions
+                mode="midazolam"
+                confirmMorfinePdf={confirmMorfinePdf}
+                confirmMidazolamPdf={confirmMidazolamPdf}
+                onToggleConfirmMorfinePdf={setConfirmMorfinePdf}
+                onToggleConfirmMidazolamPdf={setConfirmMidazolamPdf}
+                canDownloadMorfine={readiness.morfineReady.valid}
+                canDownloadMidazolam={readiness.midazolamReady.valid}
+                morfineErrors={readiness.morfineReady.errors}
+                midazolamErrors={readiness.midazolamReady.errors}
+                onDownloadMorfine={() => {
+                  downloadMorfinePdf(state);
+                  setHasDownloadedMorfine(true);
+                }}
+                onDownloadMidazolam={() => {
+                  downloadMidazolamPdf(state);
+                  setHasDownloadedMidazolam(true);
+                }}
+              />
+              <div className="flow-buttons">
+                <button type="button" onClick={() => setTab("recepten")}>
+                  Recepten
+                </button>
+              </div>
+            </>
+          ) : null}
+          {activeTab === "recepten" ? (
+            <>
+              <PrescriptionAdvice blocks={adviceBlocks} />
+            </>
+          ) : null}
+          {activeTab === "instellingen" ? (
+            <section className="card">
+              <h2>Privacy-instellingen</h2>
+              <p className="small-muted">
+                Je kunt hier lokaal opgeslagen profielgegevens verwijderen
+                (zorgverlener, instelling en apotheek).
+              </p>
+              <button
+                type="button"
+                className="secondary-action-button"
+                onClick={clearBrowserStoredProfiles}
+              >
+                Wis lokaal opgeslagen gegevens
+              </button>
+            </section>
+          ) : null}
+        </div>
+      </form>
+      <footer className="site-footer" aria-label="Juridische informatie en toelichting">
+        <div className="site-footer-tabs" role="tablist" aria-label="Footer informatie">
+          {footerSections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={section.id === activeFooterSection ? "active" : ""}
+              role="tab"
+              aria-selected={section.id === activeFooterSection}
+              onClick={() =>
+                setActiveFooterSection((previous) =>
+                  previous === section.id ? null : section.id
+                )
+              }
+            >
+              {section.heading}
             </button>
-          </div>
-        </>
-      ) : null}
-      {activeTab === "recepten" ? (
-        <>
-          <PrescriptionAdvice blocks={adviceBlocks} />
-        </>
-      ) : null}
-      </div>
+          ))}
+        </div>
+        {currentFooterSection ? (
+          <section className="site-footer-panel" role="tabpanel" aria-live="polite">
+            <h2>{currentFooterSection.heading}</h2>
+            <p>{currentFooterSection.body}</p>
+          </section>
+        ) : null}
+        <p className="site-footer-copyright">
+          {"\u00A9"} {copyrightYearLabel}{" "}
+          <a href="https://dokterbart.nl" target="_blank" rel="noopener noreferrer">
+            dokterbart.nl
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }
