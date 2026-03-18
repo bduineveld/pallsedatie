@@ -141,6 +141,29 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   const drawPlainSectionHeading = (text: string, y: number) => {
     page.drawText(text, { x: leftX, y, size: 12, font: fonts.semibold, color: brandBlue });
   };
+  const drawSectionHeadingBox = (text: string, y: number) => {
+    const sectionBoxX = leftX - 2;
+    const sectionBoxWidth = contentWidth + 4;
+    const sectionBoxHeight = 20;
+    const sectionHeaderHeight = 16;
+    const sectionBoxY = y - 6;
+    drawRoundedTable(sectionBoxX, sectionBoxY, sectionBoxWidth, sectionBoxHeight, 3, tableFillColor, brandBlue, 0.8);
+    drawTopRoundedBar(
+      sectionBoxX,
+      sectionBoxY + sectionBoxHeight - sectionHeaderHeight,
+      sectionBoxWidth,
+      sectionHeaderHeight,
+      3,
+      brandBlue
+    );
+    page.drawText(text, {
+      x: sectionBoxX + 8,
+      y: sectionBoxY + sectionBoxHeight - sectionHeaderHeight + 5,
+      size: 10,
+      font: fonts.regular,
+      color: rgb(1, 1, 1)
+    });
+  };
   const drawTopRoundedBar = (x: number, y: number, width: number, height: number, radius: number, color = brandBlue) => {
     const safeRadius = Math.max(0, Math.min(radius, width / 2, height));
     const topBandHeight = Math.max(height - safeRadius, 0);
@@ -528,7 +551,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const medicatieOffset = mm * 5;
     const overigeOffset = mm * 6;
     let y = orgTitleY - 74 + twoCm;
-    drawPlainSectionHeading("VERZOEK", y);
+    drawSectionHeadingBox("VERZOEK", y);
     y -= 14;
   if (state.midazolam.cadPlacementAllowed) {
     drawWideField("Uit te voeren handeling", "- Aansluiten medicatie via sc/iv infuuspomp", y, 170);
@@ -540,13 +563,13 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   y -= 15;
   drawWideField("Startdatum", formatDateNl(state.midazolam.startDate), y);
     y -= headingGap + indicatieOffset;
-    drawPlainSectionHeading("INDICATIE", y);
+    drawSectionHeadingBox("INDICATIE", y);
     y -= 14;
     drawWideField("Diagnose / ziektebeeld", safe(state.midazolam.diagnosis), y);
   y -= 15;
     drawWideField("Indicatie / refractair symptoom", safe(state.midazolam.indication), y);
     y -= headingGap + medicatieOffset;
-    drawPlainSectionHeading("MEDICATIEGEGEVENS (MIDAZOLAMPOMP)", y);
+    drawSectionHeadingBox("MEDICATIEGEGEVENS (MIDAZOLAMPOMP)", y);
     y -= 14;
 
     const tableX = leftX;
@@ -636,7 +659,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
       { x: leftX, y, size: 9.4, font: fonts.regular, color: brandBlue }
     );
     y -= headingGap + overigeOffset;
-    drawPlainSectionHeading("OVERIGE ADVIEZEN", y);
+    drawSectionHeadingBox("OVERIGE ADVIEZEN", y);
     y -= 14;
     drawWideField("Afwijkend ophoogbeleid / opmerkingen", safe(state.midazolam.remarks), y, 220);
     y -= 15;
@@ -696,7 +719,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   signatureFieldY -= 15;
   drawField("Handtekening", "", signatureBoxX + 8, signatureFieldY, 68, signatureValueEndX, true);
 
-    const versionText = "v1.0 pallsedatie.nl";
+    const versionText = "v1.0 pallsedatie.nl - dit is een beta test, nog niet voor officieel gebruik";
     const versionFontSize = 8;
     const versionX = pageWidth - marginX - fonts.regular.widthOfTextAtSize(versionText, versionFontSize);
     page.drawText(versionText, {

@@ -294,7 +294,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
 
       <div className="general-group">
         <SectionHeader iconSrc={calendarIcon} title="Datum verzoek" />
-        <div className="grid-2">
+        <div className="grid-2 date-request-grid">
           <FormField label={requiredLabel("Datum uitvoeringsverzoek")}>
             <input
               type="date"

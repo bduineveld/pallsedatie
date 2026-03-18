@@ -30,12 +30,63 @@ const midazolamIndicationOptions = [
   "ernstige angst"
 ];
 
-function getIndicationSearchToken(value: string): string {
+const palliativeDiagnosisOptions = [
+  "gemetastaseerd longkanker",
+  "longkanker",
+
+  "gemetastaseerd borstkanker",
+  "borstkanker",
+
+  "gemetastaseerd darmkanker",
+  "darmkanker",
+
+  "gemetastaseerd alvleesklierkanker",
+  "alvleesklierkanker",
+
+  "gemetastaseerd prostaatkanker",
+  "prostaatkanker",
+
+  "gemetastaseerd nierkanker",
+  "nierkanker",
+
+  "gemetastaseerd blaaskanker",
+  "blaaskanker",
+
+  "gemetastaseerde maligniteit (overig)",
+  "maligniteit (overig)",
+
+  "hersentumor",
+  "hooggradig glioom",
+  "hematologische maligniteit",
+
+  "hartfalen (eindstadium)",
+  "COPD / longemfyseem (eindstadium)",
+  "interstitiële longziekte (eindstadium)",
+
+  "nierfalen (eindstadium)",
+  "leverfalen",
+  "levercirrose",
+
+  "ALS",
+  "Parkinson (vergevorderd stadium)",
+  "multiple sclerose (vergevorderd stadium)",
+  "CVA met ernstige restverschijnselen",
+  "progressieve neurologische aandoening",
+
+  "vergevorderde dementie",
+
+  "delier in terminale fase",
+
+  "onbekende of niet-gespecificeerde aandoening",
+  "algemene achteruitgang bij onbekende ziekte"
+]
+
+function getAutocompleteSearchToken(value: string): string {
   const parts = value.split(",");
   return (parts[parts.length - 1] ?? "").trim().toLowerCase();
 }
 
-function applyIndicationSelection(currentValue: string, option: string): string {
+function applyAutocompleteSelection(currentValue: string, option: string): string {
   const parts = currentValue.split(",");
   const previousSelections = parts
     .slice(0, -1)
@@ -52,6 +103,7 @@ export function MidazolamTab({
   onDiagnosisBlur
 }: MidazolamTabProps) {
   const bundle = computeMidazolamSuggestionBundle(data);
+  const [diagnosisMenuOpen, setDiagnosisMenuOpen] = useState(false);
   const [indicationMenuOpen, setIndicationMenuOpen] = useState(false);
   const requiredLabel = (text: string) => (
     <>
@@ -82,8 +134,15 @@ export function MidazolamTab({
     : bundle.adviceSummary.hasAnyRiskFactor
       ? "midazolam-advice-window--single"
       : "midazolam-advice-window--none";
+  const filteredDiagnoses = useMemo(() => {
+    const needle = getAutocompleteSearchToken(data.diagnosis);
+    if (!needle) {
+      return palliativeDiagnosisOptions;
+    }
+    return palliativeDiagnosisOptions.filter((option) => option.toLowerCase().includes(needle));
+  }, [data.diagnosis]);
   const filteredIndications = useMemo(() => {
-    const needle = getIndicationSearchToken(data.indication);
+    const needle = getAutocompleteSearchToken(data.indication);
     if (!needle) {
       return midazolamIndicationOptions;
     }
@@ -99,14 +158,43 @@ export function MidazolamTab({
         <div className="general-group-body">
           <div className="grid-2">
             <FormField label={requiredLabel("Diagnose / ziektebeeld")}>
-              <input
-                value={data.diagnosis}
-                onChange={(event) => {
-                  onDiagnosisUserChange?.();
-                  onChange({ ...data, diagnosis: event.target.value });
-                }}
-                onBlur={onDiagnosisBlur}
-              />
+              <div
+                className="autocomplete-wrapper"
+                onBlur={() => setTimeout(() => setDiagnosisMenuOpen(false), 120)}
+              >
+                <input
+                  value={data.diagnosis}
+                  onFocus={() => setDiagnosisMenuOpen(true)}
+                  onChange={(event) => {
+                    onDiagnosisUserChange?.();
+                    onChange({ ...data, diagnosis: event.target.value });
+                    setDiagnosisMenuOpen(true);
+                  }}
+                  onBlur={onDiagnosisBlur}
+                />
+                {diagnosisMenuOpen && filteredDiagnoses.length > 0 ? (
+                  <div className="autocomplete-menu">
+                    {filteredDiagnoses.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        className="autocomplete-item"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          onDiagnosisUserChange?.();
+                          onChange({
+                            ...data,
+                            diagnosis: applyAutocompleteSelection(data.diagnosis, option)
+                          });
+                          setDiagnosisMenuOpen(false);
+                        }}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </FormField>
             <FormField label={requiredLabel("Indicatie / refractair symptoom")}>
               <div
@@ -132,7 +220,7 @@ export function MidazolamTab({
                         onClick={() => {
                           onChange({
                             ...data,
-                            indication: applyIndicationSelection(data.indication, option)
+                            indication: applyAutocompleteSelection(data.indication, option)
                           });
                           setIndicationMenuOpen(false);
                         }}

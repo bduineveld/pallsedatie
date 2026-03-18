@@ -60,6 +60,12 @@ export function convertOpioidsToMorphineScIv(entries: ExistingOpioidEntry[]): Mo
         `${opioidDisplayNames[item.opioid]}: dosis buiten tabelbereik of onvolledige brondata.`
       );
     }
+    if (item.opioid === "methadon_oral") {
+      const ratio = item.interpolationNote?.replace("Methadonratio gekozen: ", "").trim() ?? "onbekend";
+      warnings.push(
+        `Morfine s.c./i.v.: methadon oraal heeft een variabele ratio tussen 5:1 en 10:1. Gekozen ratio: ${ratio}.`
+      );
+    }
   }
 
   const total = items

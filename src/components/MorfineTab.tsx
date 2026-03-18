@@ -38,6 +38,7 @@ const opioidOptions: { value: OpioidKind; label: string }[] = [
   { value: "tapentadol_oral", label: "Tapentadol oraal" },
   { value: "methadon_oral", label: "Methadon oraal" }
 ];
+const methadoneRatioOptions: ExistingOpioidEntry["methadoneRatioChoice"][] = [5, 6, 7, 8, 9, 10];
 
 const morfineIndicationOptions = [
   "instabiele pijn",
@@ -50,12 +51,63 @@ const morfineIndicationOptions = [
   "praktische reden"
 ];
 
-function getIndicationSearchToken(value: string): string {
+const palliativeDiagnosisOptions = [
+  "gemetastaseerd longkanker",
+  "longkanker",
+
+  "gemetastaseerd borstkanker",
+  "borstkanker",
+
+  "gemetastaseerd darmkanker",
+  "darmkanker",
+
+  "gemetastaseerd alvleesklierkanker",
+  "alvleesklierkanker",
+
+  "gemetastaseerd prostaatkanker",
+  "prostaatkanker",
+
+  "gemetastaseerd nierkanker",
+  "nierkanker",
+
+  "gemetastaseerd blaaskanker",
+  "blaaskanker",
+
+  "gemetastaseerde maligniteit (overig)",
+  "maligniteit (overig)",
+
+  "hersentumor",
+  "hooggradig glioom",
+  "hematologische maligniteit",
+
+  "hartfalen (eindstadium)",
+  "COPD / longemfyseem (eindstadium)",
+  "interstitiële longziekte (eindstadium)",
+
+  "nierfalen (eindstadium)",
+  "leverfalen",
+  "levercirrose",
+
+  "ALS",
+  "Parkinson (vergevorderd stadium)",
+  "multiple sclerose (vergevorderd stadium)",
+  "CVA met ernstige restverschijnselen",
+  "progressieve neurologische aandoening",
+
+  "vergevorderde dementie",
+
+  "delier in terminale fase",
+
+  "onbekende of niet-gespecificeerde aandoening",
+  "algemene achteruitgang bij onbekende ziekte"
+]
+
+function getAutocompleteSearchToken(value: string): string {
   const parts = value.split(",");
   return (parts[parts.length - 1] ?? "").trim().toLowerCase();
 }
 
-function applyIndicationSelection(currentValue: string, option: string): string {
+function applyAutocompleteSelection(currentValue: string, option: string): string {
   const parts = currentValue.split(",");
   const previousSelections = parts
     .slice(0, -1)
@@ -90,7 +142,11 @@ export function MorfineTab({
   const [opioidQuery, setOpioidQuery] = useState("");
   const [pendingOpioid, setPendingOpioid] = useState<OpioidKind | "">("");
   const [pendingDose, setPendingDose] = useState("");
+  const [pendingMethadoneRatio, setPendingMethadoneRatio] = useState<
+    ExistingOpioidEntry["methadoneRatioChoice"] | ""
+  >("");
   const [opioidMenuOpen, setOpioidMenuOpen] = useState(false);
+  const [diagnosisMenuOpen, setDiagnosisMenuOpen] = useState(false);
   const [indicationMenuOpen, setIndicationMenuOpen] = useState(false);
 
   const conversionTableRows = [30, 60, 120, 180, 240, 360, 480].map((morphineOralDose) => {
@@ -117,8 +173,15 @@ export function MorfineTab({
       option.label.toLowerCase().startsWith(needle)
     );
   }, [opioidQuery]);
+  const filteredDiagnoses = useMemo(() => {
+    const needle = getAutocompleteSearchToken(data.diagnosis);
+    if (!needle) {
+      return palliativeDiagnosisOptions;
+    }
+    return palliativeDiagnosisOptions.filter((option) => option.toLowerCase().includes(needle));
+  }, [data.diagnosis]);
   const filteredIndications = useMemo(() => {
-    const needle = getIndicationSearchToken(data.indication);
+    const needle = getAutocompleteSearchToken(data.indication);
     if (!needle) {
       return morfineIndicationOptions;
     }
@@ -148,6 +211,7 @@ export function MorfineTab({
   };
 
   const lockoutForExistingHours = data.ageOver70 || data.egfrUnder30 ? 6 : 4;
+  const pendingNeedsMethadoneRatio = pendingOpioid === "methadon_oral";
   const convertedItems = bundle.conversion.items.filter(
     (item) => !Number.isNaN(item.morphineScIvMgPer24h)
   );
@@ -185,19 +249,27 @@ export function MorfineTab({
     if (!pendingOpioid || !pendingDose.trim()) {
       return;
     }
+    if (pendingNeedsMethadoneRatio && pendingMethadoneRatio === "") {
+      return;
+    }
     const dose = Number(pendingDose);
     if (!Number.isFinite(dose) || dose <= 0) {
       return;
     }
+    const methadoneRatioChoice: ExistingOpioidEntry["methadoneRatioChoice"] =
+      pendingOpioid === "methadon_oral"
+        ? (pendingMethadoneRatio as ExistingOpioidEntry["methadoneRatioChoice"])
+        : 5;
     const entry: ExistingOpioidEntry = {
       id: crypto.randomUUID(),
       opioid: pendingOpioid,
       dosePer24h: dose,
-      methadoneRatioChoice: 5
+      methadoneRatioChoice
     };
     onChange({ ...data, existingOpioids: [...data.existingOpioids, entry] });
     setPendingOpioid("");
     setPendingDose("");
+    setPendingMethadoneRatio("");
     setOpioidQuery("");
   };
 
@@ -210,14 +282,43 @@ export function MorfineTab({
         <div className="general-group-body">
           <div className="grid-2">
           <FormField label={requiredLabel("Diagnose / ziektebeeld")}>
-            <input
-              value={data.diagnosis}
-              onChange={(event) => {
-                onDiagnosisUserChange?.();
-                onChange({ ...data, diagnosis: event.target.value });
-              }}
-              onBlur={onDiagnosisBlur}
-            />
+            <div
+              className="autocomplete-wrapper"
+              onBlur={() => setTimeout(() => setDiagnosisMenuOpen(false), 120)}
+            >
+              <input
+                value={data.diagnosis}
+                onFocus={() => setDiagnosisMenuOpen(true)}
+                onChange={(event) => {
+                  onDiagnosisUserChange?.();
+                  onChange({ ...data, diagnosis: event.target.value });
+                  setDiagnosisMenuOpen(true);
+                }}
+                onBlur={onDiagnosisBlur}
+              />
+              {diagnosisMenuOpen && filteredDiagnoses.length > 0 ? (
+                <div className="autocomplete-menu">
+                  {filteredDiagnoses.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className="autocomplete-item"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        onDiagnosisUserChange?.();
+                        onChange({
+                          ...data,
+                          diagnosis: applyAutocompleteSelection(data.diagnosis, option)
+                        });
+                        setDiagnosisMenuOpen(false);
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </FormField>
           <FormField label={requiredLabel("Indicatie / refractair symptoom")}>
             <div
@@ -243,7 +344,7 @@ export function MorfineTab({
                       onClick={() => {
                         onChange({
                           ...data,
-                          indication: applyIndicationSelection(data.indication, option)
+                            indication: applyAutocompleteSelection(data.indication, option)
                         });
                         setIndicationMenuOpen(false);
                       }}
@@ -349,7 +450,11 @@ export function MorfineTab({
                         setOpioidQuery(value);
                         setOpioidMenuOpen(true);
                         const exact = opioidOptions.find((option) => option.label === value);
-                        setPendingOpioid(exact ? exact.value : "");
+                        const nextOpioid = exact ? exact.value : "";
+                        setPendingOpioid(nextOpioid);
+                        if (nextOpioid !== "methadon_oral") {
+                          setPendingMethadoneRatio("");
+                        }
                       }}
                     />
                     {opioidMenuOpen && filteredOpioids.length > 0 ? (
@@ -362,6 +467,9 @@ export function MorfineTab({
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => {
                               setPendingOpioid(option.value);
+                          if (option.value !== "methadon_oral") {
+                            setPendingMethadoneRatio("");
+                          }
                               setOpioidQuery(option.label);
                               setOpioidMenuOpen(false);
                             }}
@@ -382,7 +490,29 @@ export function MorfineTab({
                   <span className="small-muted">
                     {pendingOpioid ? unitForOpioid(pendingOpioid) : "mg/24u"}
                   </span>
-                  <button type="button" onClick={addPendingOpioid}>
+                  {pendingNeedsMethadoneRatio ? (
+                    <select
+                      value={pendingMethadoneRatio}
+                      onChange={(event) =>
+                        setPendingMethadoneRatio(
+                          Number(event.target.value) as ExistingOpioidEntry["methadoneRatioChoice"]
+                        )
+                      }
+                      className="methadone-ratio-select"
+                    >
+                      <option value="">Kies methadonratio</option>
+                      {methadoneRatioOptions.map((ratio) => (
+                        <option key={ratio} value={ratio}>
+                          {ratio}:1
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={addPendingOpioid}
+                    disabled={pendingNeedsMethadoneRatio && pendingMethadoneRatio === ""}
+                  >
                     OK
                   </button>
                 </div>
@@ -392,6 +522,29 @@ export function MorfineTab({
                 {data.existingOpioids.map((entry) => (
                   <span className="opioid-chip" key={entry.id}>
                     {opioidDisplayNames[entry.opioid]} {formatMedicalNumber(entry.dosePer24h)} {unitForOpioid(entry.opioid)}
+                    {entry.opioid === "methadon_oral" ? (
+                      <select
+                        value={entry.methadoneRatioChoice}
+                        onChange={(event) => {
+                          const ratio = Number(event.target.value) as ExistingOpioidEntry["methadoneRatioChoice"];
+                          onChange({
+                            ...data,
+                            existingOpioids: data.existingOpioids.map((item) =>
+                              item.id === entry.id
+                                ? { ...item, methadoneRatioChoice: ratio }
+                                : item
+                            )
+                          });
+                        }}
+                        className="methadone-ratio-select methadone-ratio-select--chip"
+                      >
+                        {methadoneRatioOptions.map((ratio) => (
+                          <option key={ratio} value={ratio}>
+                            {ratio}:1
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>

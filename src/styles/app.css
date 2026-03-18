@@ -135,10 +135,9 @@ body {
   background: #8bd19c;
 }
 
-/* Eerste section.card na de tabs: tabs zitten visueel vast aan deze kaart */
+/* Eerste section.card na de tabs: tabs zitten visueel vast aan deze kaart; stond eerst margin-top: 0.5px; */
 .content-with-tabs .paper-tabs + .card {
   border-radius: 0 8px 8px 8px;
-  margin-top: 0.5px;
 }
 
 .tab-button-recepten {
@@ -261,6 +260,10 @@ body {
   gap: 0.75rem;
 }
 
+.date-request-grid {
+  grid-template-columns: 266.8px;
+}
+
 .form-field {
   display: flex;
   flex-direction: column;
@@ -322,19 +325,31 @@ body {
 
 .general-group-header-actions {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
 }
 
 .header-action-button {
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  background: transparent;
   color: #fff;
-  border-radius: 6px;
-  padding: 0.1rem 0.4rem;
+  padding: 0;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  align-self: center;
 }
 
 .header-action-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  opacity: 0.85;
+}
+
+.header-action-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .header-checkbox-line {
@@ -355,13 +370,14 @@ body {
 }
 
 .header-action-icon {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 1.18rem;
+  height: 1.18rem;
   display: block;
+  filter: brightness(0) invert(1);
 }
 
 .header-action-icon--saved {
-  color: #22c55e;
+  filter: brightness(0) saturate(100%) invert(73%) sepia(71%) saturate(651%) hue-rotate(78deg) brightness(90%) contrast(93%);
 }
 
 .autocomplete-wrapper {
@@ -597,6 +613,14 @@ textarea {
   cursor: pointer;
   color: #475569;
   padding: 0;
+}
+
+.methadone-ratio-select {
+  min-width: 130px;
+}
+
+.methadone-ratio-select--chip {
+  min-width: 72px;
 }
 
 .conversion-summary {
