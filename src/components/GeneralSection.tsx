@@ -309,8 +309,21 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       </div>
 
       <div className="general-group">
-        <SectionHeader iconSrc={personIcon} title="Cliënt" />
-        <div className="grid-2">
+        <SectionHeader
+          iconSrc={personIcon}
+          title="Patiënt"
+          action={
+            <label className="header-checkbox-line">
+              <input
+                type="checkbox"
+                checked={data.usePatientSticker}
+                onChange={(event) => onChange({ ...data, usePatientSticker: event.target.checked })}
+              />
+              gebruik patiëntsticker
+            </label>
+          }
+        />
+        {!data.usePatientSticker ? <div className="grid-2">
           <FormField label={requiredLabel("Naam")}>
             <input
               value={data.patient.fullName}
@@ -382,7 +395,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               }
             />
           </FormField>
-        </div>
+        </div> : null}
       </div>
 
       <div className="general-group">

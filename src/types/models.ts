@@ -43,6 +43,7 @@ export interface PhysicianData {
 export interface GeneralFormData {
   mode: AppMode;
   patient: PatientData;
+  usePatientSticker: boolean;
   physician: PhysicianData;
   organization: string;
   organizationPhone: string;

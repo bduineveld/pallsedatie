@@ -21,6 +21,7 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
         contactPhone: "",
         insurance: ""
       },
+      usePatientSticker: false,
       physician: {
         role: "huisarts",
         fullName: "",

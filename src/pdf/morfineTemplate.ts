@@ -301,6 +301,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     const patientName = safe(
       [state.general.patient.gender.trim(), state.general.patient.fullName.trim()].filter(Boolean).join(" ")
     );
+    const showPatientSticker = state.general.usePatientSticker;
 
     page.drawText("Uitvoeringsverzoek Morfine", {
       x: marginX,
@@ -332,12 +333,15 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
       color: brandGold
     });
 
+    const mmToPt = 72 / 25.4;
+    const threeMm = mmToPt * 3;
     const topY = 756;
     const topFieldStartY = 736;
     const topLineGap = 14;
     const orgTitleY = topFieldStartY - 6 * topLineGap - 12;
     const patientTableTop = topY + 12;
-    const patientTableBottom = topFieldStartY - 5 * topLineGap - 14;
+    const baseTopTableBottom = topFieldStartY - 5 * topLineGap - 14;
+    const patientTableBottom = baseTopTableBottom - threeMm;
     const patientTableX = leftX - 6;
     const patientTableWidth = columnWidth + 12;
     drawRoundedTable(patientTableX, patientTableBottom, patientTableWidth, patientTableTop - patientTableBottom, 3);
@@ -345,69 +349,93 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     const patientHeaderHeight = 16;
     const patientHeaderY = patientTableTop - patientHeaderHeight;
     drawTopRoundedBar(patientTableX, patientHeaderY, patientTableWidth, patientHeaderHeight, 3, brandBlue);
-    page.drawText("Patiëntgegevens", {
+    page.drawText(showPatientSticker ? "Patiëntsticker" : "Patiëntgegevens", {
       x: leftX,
       y: patientHeaderY + 5,
       size: 10,
       font: fonts.regular,
       color: rgb(1, 1, 1)
     });
-    drawColumnField("Naam", patientName, leftX, topFieldStartY, 66, true);
-  const bornY = topFieldStartY - topLineGap;
-  const bornLabelWidth = 66;
-  const bornValueX = leftX + bornLabelWidth;
-  const bsnLabelX = bornValueX + 113;
-  const bsnLabelWidth = 26;
-  const bsnValueX = bsnLabelX + bsnLabelWidth;
-  page.drawRectangle({
-    x: bornValueX,
-    y: bornY - 1.8,
-    width: Math.max(bsnLabelX - 8 - bornValueX, 0),
-    height: 10.8,
-    color: valueFillColor
-  });
-  page.drawRectangle({
-    x: bsnValueX,
-    y: bornY - 1.8,
-    width: Math.max(leftX + columnWidth - 2 - bsnValueX, 0),
-    height: 10.8,
-    color: valueFillColor
-  });
-  page.drawText("Geboren:", { x: leftX, y: bornY, size: 9, font: fonts.semibold, color: brandBlue });
-  page.drawText(formatDateNl(state.general.patient.birthDate), { x: bornValueX, y: bornY, size: 10, font: fonts.regular, color: brandBlue });
-  page.drawLine({
-    start: { x: bornValueX, y: bornY - 2 },
-    end: { x: bsnLabelX - 8, y: bornY - 2 },
-    thickness: 0.3,
-    color: dottedLineColor,
-    dashArray: [1.5, 1.5]
-  });
-  page.drawText("BSN:", { x: bsnLabelX, y: bornY, size: 9, font: fonts.semibold, color: brandBlue });
-  page.drawText(safe(state.general.patient.bsn), { x: bsnValueX, y: bornY, size: 10, font: fonts.regular, color: brandBlue });
-  page.drawLine({
-    start: { x: bsnValueX, y: bornY - 2 },
-    end: { x: leftX + columnWidth - 2, y: bornY - 2 },
-    thickness: 0.3,
-    color: dottedLineColor,
-    dashArray: [1.5, 1.5]
-  });
-  drawColumnField("Adres", safe(state.general.patient.address), leftX, topFieldStartY - 2 * topLineGap, 66, true);
-  drawColumnField("Plaats", safe(state.general.patient.city), leftX, topFieldStartY - 3 * topLineGap, 66, true);
-  drawColumnField("Telefoon", safe(state.general.patient.contactPhone), leftX, topFieldStartY - 4 * topLineGap, 66, true);
-  drawColumnField("Verzekering", safe(state.general.patient.insurance), leftX, topFieldStartY - 5 * topLineGap, 66, true);
+    const patientNameBaselineY = patientHeaderY - 15;
+    if (!showPatientSticker) {
+      const patientFieldsTopY = patientNameBaselineY;
+      const patientFieldsBottomY = patientTableBottom + 10;
+      const patientRowGap = (patientFieldsTopY - patientFieldsBottomY) / 5;
+      const patientNameY = patientFieldsTopY;
+      const bornY = patientNameY - patientRowGap;
+      const addressY = bornY - patientRowGap;
+      const cityY = addressY - patientRowGap;
+      const phoneY = cityY - patientRowGap;
+      const insuranceY = phoneY - patientRowGap;
+
+      drawColumnField("Naam", patientName, leftX, patientNameY, 66, true);
+      const bornLabelWidth = 66;
+      const bornValueX = leftX + bornLabelWidth;
+      const bsnLabelX = bornValueX + 113;
+      const bsnLabelWidth = 26;
+      const bsnValueX = bsnLabelX + bsnLabelWidth;
+      page.drawRectangle({
+        x: bornValueX,
+        y: bornY - 1.8,
+        width: Math.max(bsnLabelX - 8 - bornValueX, 0),
+        height: 10.8,
+        color: valueFillColor
+      });
+      page.drawRectangle({
+        x: bsnValueX,
+        y: bornY - 1.8,
+        width: Math.max(leftX + columnWidth - 2 - bsnValueX, 0),
+        height: 10.8,
+        color: valueFillColor
+      });
+      page.drawText("Geboren:", { x: leftX, y: bornY, size: 9, font: fonts.semibold, color: brandBlue });
+      page.drawText(formatDateNl(state.general.patient.birthDate), { x: bornValueX, y: bornY, size: 10, font: fonts.regular, color: brandBlue });
+      page.drawLine({
+        start: { x: bornValueX, y: bornY - 2 },
+        end: { x: bsnLabelX - 8, y: bornY - 2 },
+        thickness: 0.3,
+        color: dottedLineColor,
+        dashArray: [1.5, 1.5]
+      });
+      page.drawText("BSN:", { x: bsnLabelX, y: bornY, size: 9, font: fonts.semibold, color: brandBlue });
+      page.drawText(safe(state.general.patient.bsn), { x: bsnValueX, y: bornY, size: 10, font: fonts.regular, color: brandBlue });
+      page.drawLine({
+        start: { x: bsnValueX, y: bornY - 2 },
+        end: { x: leftX + columnWidth - 2, y: bornY - 2 },
+        thickness: 0.3,
+        color: dottedLineColor,
+        dashArray: [1.5, 1.5]
+      });
+      drawColumnField("Adres", safe(state.general.patient.address), leftX, addressY, 66, true);
+      drawColumnField("Plaats", safe(state.general.patient.city), leftX, cityY, 66, true);
+      drawColumnField("Telefoon", safe(state.general.patient.contactPhone), leftX, phoneY, 66, true);
+      drawColumnField("Verzekering", safe(state.general.patient.insurance), leftX, insuranceY, 66, true);
+    }
 
     const rightPanelX = rightX - 6;
     const rightPanelWidth = columnWidth + 12;
     const rightPanelHeight = patientTableTop - patientTableBottom;
-    const rightPanelGap = 8;
-    const twoMm = (72 / 25.4) * 2;
-    const uitvoerendeHeight = 64 - twoMm;
-    const apotheekHeight = rightPanelHeight - uitvoerendeHeight - rightPanelGap;
+    const panelHeaderHeight = 16;
+    const rightPanelGap = 6;
+    const lineStep = 13.5;
+    const uitvoerendeTopPadding = 12;
+    const uitvoerendeBottomPadding = 9;
+    const apotheekTopPadding = 12;
+    const apotheekBottomPadding = 9;
+    const apotheekHeaderExtraHeight = mmToPt * 0.5;
+    const apotheekHeight =
+      panelHeaderHeight + apotheekTopPadding + lineStep + apotheekBottomPadding + apotheekHeaderExtraHeight;
+    const minUitvoerendeHeight =
+      panelHeaderHeight + uitvoerendeTopPadding + lineStep * 2 + uitvoerendeBottomPadding;
+    const uitvoerendeHeight = Math.max(
+      minUitvoerendeHeight,
+      rightPanelHeight - rightPanelGap - apotheekHeight
+    );
+    const resolvedApotheekHeight = rightPanelHeight - uitvoerendeHeight - rightPanelGap;
     const uitvoerendeY = patientTableTop - uitvoerendeHeight;
     const apotheekY = patientTableBottom;
-    const panelHeaderHeight = 16;
     drawRoundedTable(rightPanelX, uitvoerendeY, rightPanelWidth, uitvoerendeHeight, 3);
-    drawRoundedTable(rightPanelX, apotheekY, rightPanelWidth, apotheekHeight, 3);
+    drawRoundedTable(rightPanelX, apotheekY, rightPanelWidth, resolvedApotheekHeight, 3);
     drawTopRoundedBar(
       rightPanelX,
       uitvoerendeY + uitvoerendeHeight - panelHeaderHeight,
@@ -418,7 +446,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     );
     drawTopRoundedBar(
       rightPanelX,
-      apotheekY + apotheekHeight - panelHeaderHeight,
+      apotheekY + resolvedApotheekHeight - panelHeaderHeight,
       rightPanelWidth,
       panelHeaderHeight,
       3,
@@ -434,24 +462,55 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     font: fonts.regular,
     color: rgb(1, 1, 1)
   });
-  let rightFieldY = patientTableTop - 28;
-  drawField("Naam", safe(state.general.organization), rightInnerX, rightFieldY, 58, rightInnerEndX, true);
-  rightFieldY -= 12;
-  drawField("Telefoon", safe(state.general.organizationPhone), rightInnerX, rightFieldY, 58, rightInnerEndX, true);
-  rightFieldY -= 12;
-  drawField("E-mail", safe(state.general.organizationSecureEmail), rightInnerX, rightFieldY, 58, rightInnerEndX, true);
+  const sharedBottomFieldMargin =
+    resolvedApotheekHeight - panelHeaderHeight - apotheekTopPadding - lineStep;
+  const uitvoerendeNaamY = patientNameBaselineY;
+  const uitvoerendeEmailBaseY = uitvoerendeY + sharedBottomFieldMargin;
+  const uitvoerendeTelefoonY =
+    (uitvoerendeY + sharedBottomFieldMargin + lineStep * 2 + uitvoerendeEmailBaseY) / 2;
+  const uitvoerendeTelefoonAdjustedY = uitvoerendeTelefoonY - mmToPt * 1;
+  const uitvoerendeNaamTelefoonGap = uitvoerendeNaamY - uitvoerendeTelefoonAdjustedY;
+  const uitvoerendeEmailY = uitvoerendeTelefoonAdjustedY - (uitvoerendeNaamY - uitvoerendeTelefoonAdjustedY);
+  drawField("Naam", safe(state.general.organization), rightInnerX, uitvoerendeNaamY, 58, rightInnerEndX, true);
+  drawField(
+    "Telefoon",
+    safe(state.general.organizationPhone),
+    rightInnerX,
+    uitvoerendeTelefoonAdjustedY,
+    58,
+    rightInnerEndX,
+    true
+  );
+  drawField(
+    "E-mail",
+    safe(state.general.organizationSecureEmail),
+    rightInnerX,
+    uitvoerendeEmailY,
+    58,
+    rightInnerEndX,
+    true
+  );
 
   page.drawText("Apotheek", {
     x: rightInnerX,
-    y: apotheekY + apotheekHeight - panelHeaderHeight + 5,
+    y: apotheekY + resolvedApotheekHeight - panelHeaderHeight + 5,
     size: 10,
     font: fonts.regular,
     color: rgb(1, 1, 1)
   });
-  let apotheekFieldY = apotheekY + apotheekHeight - 28;
-  drawField("Naam", safe(state.general.pharmacy), rightInnerX, apotheekFieldY, 58, rightInnerEndX, true);
-  apotheekFieldY -= 12;
-  drawField("Telefoon", safe(state.general.pharmacyPhone), rightInnerX, apotheekFieldY, 58, rightInnerEndX, true);
+  const apotheekFieldsDownShift = mmToPt * 1;
+  const apotheekTopFieldY =
+    apotheekY + resolvedApotheekHeight - panelHeaderHeight - apotheekTopPadding - apotheekFieldsDownShift;
+  drawField("Naam", safe(state.general.pharmacy), rightInnerX, apotheekTopFieldY, 58, rightInnerEndX, true);
+  drawField(
+    "Telefoon",
+    safe(state.general.pharmacyPhone),
+    rightInnerX,
+    apotheekTopFieldY - uitvoerendeNaamTelefoonGap,
+    58,
+    rightInnerEndX,
+    true
+  );
 
     const mm = 72 / 25.4;
     const twoCm = mm * 20;
