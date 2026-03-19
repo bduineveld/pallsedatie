@@ -571,9 +571,9 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const indicatieHeadingToFirstFieldOffset = 18;
     const indicatieHeadingDownShift = mm * 5;
     const indicatieContentDownShift = 4;
+    const medicatieContentDownShift = 8;
+    const overigeContentDownShift = 4;
     const fieldGap = 15;
-    const tableHeight = 38;
-
     const verzoekHeadingY = orgTitleY - 74 + twoCm - fiveMm;
     const verzoekActionY = verzoekHeadingY - verzoekHeadingToFirstFieldOffset;
     const verzoekCadY = verzoekActionY - fieldGap;
@@ -586,13 +586,13 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const indicatieBottomY = indicatieSymptoomY - 8;
 
     const medicatieHeadingY = indicatieSymptoomY - (headingGap + medicatieOffset);
-    const medicatieContentStartY = medicatieHeadingY - headingToFirstFieldOffset;
-    const medicatieTableY = medicatieContentStartY - tableHeight + 3;
-    const medicatieCheckboxY = medicatieTableY - 12;
+    const medicatieContentStartY = medicatieHeadingY - headingToFirstFieldOffset - medicatieContentDownShift;
+    const medicatieLastFieldY = medicatieContentStartY - fieldGap * 2;
+    const medicatieCheckboxY = medicatieLastFieldY - fieldGap;
     const medicatieBottomY = medicatieCheckboxY - 8;
 
     const overigeHeadingY = medicatieCheckboxY - (headingGap + overigeOffset);
-    const overigeOpmerkingenY = overigeHeadingY - headingToFirstFieldOffset;
+    const overigeOpmerkingenY = overigeHeadingY - headingToFirstFieldOffset - overigeContentDownShift;
     const overigeBijwerkingenY = overigeOpmerkingenY - fieldGap;
     const overigeBottomY = overigeBijwerkingenY - 8;
 
@@ -619,92 +619,40 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
       indicatieSymptoomY - indicatieContentDownShift
     );
 
-    const tableX = leftX;
-    const tableWidth = contentWidth;
-    const rowHeight = tableHeight / 3;
-    const colWidth = tableWidth / 2;
-    const tableY = medicatieTableY;
-    page.drawRectangle({
-      x: tableX,
-      y: tableY,
-      width: tableWidth,
-      height: tableHeight,
-      borderColor: brandBlue,
-      borderWidth: 0.8
-    });
-    page.drawLine({
-      start: { x: tableX + colWidth, y: tableY },
-      end: { x: tableX + colWidth, y: tableY + tableHeight },
-      thickness: 0.6,
-      color: brandBlue
-    });
-    page.drawLine({
-      start: { x: tableX, y: tableY + rowHeight },
-      end: { x: tableX + tableWidth, y: tableY + rowHeight },
-      thickness: 0.6,
-      color: brandBlue
-    });
-    page.drawLine({
-      start: { x: tableX, y: tableY + rowHeight * 2 },
-      end: { x: tableX + tableWidth, y: tableY + rowHeight * 2 },
-      thickness: 0.6,
-      color: brandBlue
-    });
-    page.drawText(`Medicatie: Midazolam`, {
-      x: tableX + 6,
-      y: tableY + rowHeight * 2 + 4,
-      size: 9.2,
-      font: fonts.regular,
-      color: brandBlue
-    });
-    page.drawText(`Concentratie: ${state.midazolam.concentrationMgPerMl} mg/ml`, {
-      x: tableX + colWidth + 6,
-      y: tableY + rowHeight * 2 + 4,
-      size: 9.2,
-      font: fonts.regular,
-      color: brandBlue
-    });
-    page.drawText(`Oplaaddosis: ${safe(state.midazolam.loadingDoseMg)} mg`, {
-      x: tableX + 6,
-      y: tableY + rowHeight + 4,
-      size: 9.2,
-      font: fonts.regular,
-      color: brandBlue
-    });
-    page.drawText(
-      `Continue dosis: ${buildContinueDoseLabel(
-        state.midazolam.continueDoseMgPer24h,
-        state.midazolam.concentrationMgPerMl,
-        state.general.showMlPerHour
-      )}`,
-      {
-        x: tableX + colWidth + 6,
-        y: tableY + rowHeight + 4,
-        size: 9.2,
-        font: fonts.regular,
-        color: brandBlue
-      }
+    const medFieldY1 = medicatieContentStartY;
+    const medFieldY2 = medFieldY1 - fieldGap;
+    const medFieldY3 = medFieldY2 - fieldGap;
+    const medLabelWidth = 100;
+    const medMidX = leftX + contentWidth / 2 + columnGap / 2;
+    const medLeftEndX = medMidX - columnGap / 2;
+    const medRightEndX = marginX + contentWidth;
+
+    drawField("Medicatie", "Midazolam", leftX, medFieldY1, medLabelWidth, medLeftEndX, true);
+    drawField("Concentratie", `${state.midazolam.concentrationMgPerMl} mg/ml`, medMidX, medFieldY1, medLabelWidth, medRightEndX, true);
+    drawField("Oplaaddosis", `${safe(state.midazolam.loadingDoseMg)} mg`, leftX, medFieldY2, medLabelWidth, medLeftEndX, true);
+    drawField(
+      "Continue dosis",
+      buildContinueDoseLabel(state.midazolam.continueDoseMgPer24h, state.midazolam.concentrationMgPerMl, state.general.showMlPerHour),
+      medMidX, medFieldY2, medLabelWidth, medRightEndX, true
     );
-    page.drawText(`Bolus: ${safe(state.midazolam.bolusMg)} mg`, {
-      x: tableX + 6,
-      y: tableY + 4,
-      size: 9.2,
-      font: fonts.regular,
-      color: brandBlue
-    });
-    page.drawText(`Lockout: ${safe(state.midazolam.lockoutHours)} uur`, {
-      x: tableX + colWidth + 6,
-      y: tableY + 4,
-      size: 9.2,
-      font: fonts.regular,
-      color: brandBlue
-    });
+    drawField("Bolus", `${safe(state.midazolam.bolusMg)} mg`, leftX, medFieldY3, medLabelWidth, medLeftEndX, true);
+    drawField("Lockout", `${safe(state.midazolam.lockoutHours)} uur`, medMidX, medFieldY3, medLabelWidth, medRightEndX, true);
     page.drawText(
       `${state.midazolam.escalation50PercentAgreement ? "☑" : "☐"} Na minimaal 4 uur zo nodig ophogen met 50%`,
       { x: leftX, y: medicatieCheckboxY, size: 9.4, font: fonts.regular, color: brandBlue }
     );
-    drawWideField("Afwijkend ophoogbeleid / opmerkingen", safe(state.midazolam.remarks), overigeOpmerkingenY, 220);
-    drawWideField("Specifieke problemen / bijwerkingen", safe(state.midazolam.sideEffects), overigeBijwerkingenY, 220);
+    drawWideHighlightedField(
+      "Afwijkend ophoogbeleid / opmerkingen",
+      safe(state.midazolam.remarks),
+      overigeOpmerkingenY,
+      220
+    );
+    drawWideHighlightedField(
+      "Specifieke problemen / bijwerkingen",
+      safe(state.midazolam.sideEffects),
+      overigeBijwerkingenY,
+      220
+    );
   const physicianBoxX = leftX;
   const physicianBoxY = 74;
   const physicianBoxWidth = columnWidth;
