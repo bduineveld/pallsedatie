@@ -141,12 +141,17 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   const drawPlainSectionHeading = (text: string, y: number) => {
     page.drawText(text, { x: leftX, y, size: 12, font: fonts.semibold, color: brandBlue });
   };
-  const drawSectionHeadingBox = (text: string, y: number) => {
-    const sectionBoxX = leftX - 2;
-    const sectionBoxWidth = contentWidth + 4;
-    const sectionBoxHeight = 20;
+  const drawSectionHeadingBox = (text: string, headingY: number, sectionBottomY: number) => {
+    const mmToPt = 72 / 25.4;
+    const sideBleed = mmToPt * 1.5;
+    const sectionBoxX = leftX - 2 - sideBleed;
+    const sectionBoxWidth = contentWidth + 4 + sideBleed * 2;
+    const sectionTopPadding = 12;
+    const sectionBottomPadding = 6;
     const sectionHeaderHeight = 16;
-    const sectionBoxY = y - 6;
+    const sectionTopY = headingY + sectionTopPadding;
+    const sectionBoxY = sectionBottomY - sectionBottomPadding;
+    const sectionBoxHeight = Math.max(sectionTopY - sectionBoxY, sectionHeaderHeight + 8);
     drawRoundedTable(sectionBoxX, sectionBoxY, sectionBoxWidth, sectionBoxHeight, 3, tableFillColor, brandBlue, 0.8);
     drawTopRoundedBar(
       sectionBoxX,
@@ -319,6 +324,8 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
   ) => drawField(label, value, x, y, labelWidth, x + columnWidth - 2, highlightValue);
   const drawWideField = (label: string, value: string, y: number, labelWidth = 170) =>
     drawField(label, value, leftX, y, labelWidth, marginX + contentWidth);
+  const drawWideHighlightedField = (label: string, value: string, y: number, labelWidth = 170) =>
+    drawField(label, value, leftX, y, labelWidth, marginX + contentWidth, true);
   const drawWideContinuation = (value: string, y: number, labelWidth = 170) => {
     page.drawText(value, { x: leftX + labelWidth, y, size: 10, font: fonts.regular, color: brandBlue });
     page.drawLine({
@@ -401,22 +408,30 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const insuranceY = phoneY - patientRowGap;
 
     drawColumnField("Naam", patientName, leftX, patientNameY, 66, true);
+    const pairEndX = leftX + columnWidth - 2;
+    const pairGap = 8;
     const bornLabelWidth = 66;
-    const bornValueX = leftX + bornLabelWidth;
-    const bsnLabelX = bornValueX + 113;
     const bsnLabelWidth = 26;
-    const bsnValueX = bsnLabelX + bsnLabelWidth;
+    const sharedValueWidth = Math.max(
+      (pairEndX - leftX - pairGap - bornLabelWidth - bsnLabelWidth) / 2,
+      0
+    );
+    const bornValueX = leftX + bornLabelWidth;
+    const bornValueEndX = bornValueX + sharedValueWidth;
+    const bsnValueX = pairEndX - sharedValueWidth;
+    const bsnLabelX = bsnValueX - bsnLabelWidth;
+    const bsnValueEndX = pairEndX;
     page.drawRectangle({
       x: bornValueX,
       y: bornY - 1.8,
-      width: Math.max(bsnLabelX - 8 - bornValueX, 0),
+      width: sharedValueWidth,
       height: 10.8,
       color: valueFillColor
     });
     page.drawRectangle({
       x: bsnValueX,
       y: bornY - 1.8,
-      width: Math.max(leftX + columnWidth - 2 - bsnValueX, 0),
+      width: sharedValueWidth,
       height: 10.8,
       color: valueFillColor
     });
@@ -424,7 +439,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     page.drawText(formatDateNl(state.general.patient.birthDate), { x: bornValueX, y: bornY, size: 10, font: fonts.regular, color: brandBlue });
     page.drawLine({
       start: { x: bornValueX, y: bornY - 2 },
-      end: { x: bsnLabelX - 8, y: bornY - 2 },
+      end: { x: bornValueEndX, y: bornY - 2 },
       thickness: 0.3,
       color: dottedLineColor,
       dashArray: [1.5, 1.5]
@@ -433,7 +448,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     page.drawText(safe(state.general.patient.bsn), { x: bsnValueX, y: bornY, size: 10, font: fonts.regular, color: brandBlue });
     page.drawLine({
       start: { x: bsnValueX, y: bornY - 2 },
-      end: { x: leftX + columnWidth - 2, y: bornY - 2 },
+      end: { x: bsnValueEndX, y: bornY - 2 },
       thickness: 0.3,
       color: dottedLineColor,
       dashArray: [1.5, 1.5]
@@ -550,34 +565,65 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const indicatieOffset = mm * 2;
     const medicatieOffset = mm * 5;
     const overigeOffset = mm * 6;
-    let y = orgTitleY - 74 + twoCm;
-    drawSectionHeadingBox("VERZOEK", y);
-    y -= 14;
-  if (state.midazolam.cadPlacementAllowed) {
-    drawWideField("Uit te voeren handeling", "- Aansluiten medicatie via sc/iv infuuspomp", y, 170);
-    y -= 15;
-    drawWideContinuation(`- Plaatsen CAD (Maat: Ch ${state.midazolam.cadSizeCharriere})`, y, 170);
-  } else {
-    drawWideField("Uit te voeren handeling", "Aansluiten medicatie via sc/iv infuuspomp", y, 170);
-  }
-  y -= 15;
-  drawWideField("Startdatum", formatDateNl(state.midazolam.startDate), y);
-    y -= headingGap + indicatieOffset;
-    drawSectionHeadingBox("INDICATIE", y);
-    y -= 14;
-    drawWideField("Diagnose / ziektebeeld", safe(state.midazolam.diagnosis), y);
-  y -= 15;
-    drawWideField("Indicatie / refractair symptoom", safe(state.midazolam.indication), y);
-    y -= headingGap + medicatieOffset;
-    drawSectionHeadingBox("MEDICATIEGEGEVENS (MIDAZOLAMPOMP)", y);
-    y -= 14;
+    const fiveMm = mm * 5;
+    const headingToFirstFieldOffset = 14;
+    const verzoekHeadingToFirstFieldOffset = 21;
+    const indicatieHeadingToFirstFieldOffset = 18;
+    const indicatieHeadingDownShift = mm * 5;
+    const indicatieContentDownShift = 4;
+    const fieldGap = 15;
+    const tableHeight = 38;
+
+    const verzoekHeadingY = orgTitleY - 74 + twoCm - fiveMm;
+    const verzoekActionY = verzoekHeadingY - verzoekHeadingToFirstFieldOffset;
+    const verzoekCadY = verzoekActionY - fieldGap;
+    const verzoekStartDatumY = verzoekActionY - (state.midazolam.cadPlacementAllowed ? fieldGap * 2 : fieldGap);
+    const verzoekBottomY = verzoekStartDatumY - 8;
+
+    const indicatieHeadingY = verzoekStartDatumY - (headingGap + indicatieOffset) - indicatieHeadingDownShift;
+    const indicatieDiagnoseY = indicatieHeadingY - indicatieHeadingToFirstFieldOffset;
+    const indicatieSymptoomY = indicatieDiagnoseY - fieldGap;
+    const indicatieBottomY = indicatieSymptoomY - 8;
+
+    const medicatieHeadingY = indicatieSymptoomY - (headingGap + medicatieOffset);
+    const medicatieContentStartY = medicatieHeadingY - headingToFirstFieldOffset;
+    const medicatieTableY = medicatieContentStartY - tableHeight + 3;
+    const medicatieCheckboxY = medicatieTableY - 12;
+    const medicatieBottomY = medicatieCheckboxY - 8;
+
+    const overigeHeadingY = medicatieCheckboxY - (headingGap + overigeOffset);
+    const overigeOpmerkingenY = overigeHeadingY - headingToFirstFieldOffset;
+    const overigeBijwerkingenY = overigeOpmerkingenY - fieldGap;
+    const overigeBottomY = overigeBijwerkingenY - 8;
+
+    drawSectionHeadingBox("Verzoek", verzoekHeadingY, verzoekBottomY);
+    drawSectionHeadingBox("Indicatie", indicatieHeadingY, indicatieBottomY);
+    drawSectionHeadingBox("Medicatiegegevens (midazolampomp)", medicatieHeadingY, medicatieBottomY);
+    drawSectionHeadingBox("Overige adviezen", overigeHeadingY, overigeBottomY);
+
+    if (state.midazolam.cadPlacementAllowed) {
+      drawWideHighlightedField("Uit te voeren handeling", "- Aansluiten medicatie via sc/iv infuuspomp", verzoekActionY, 170);
+      drawWideContinuation(`- Plaatsen CAD (Maat: Ch ${state.midazolam.cadSizeCharriere})`, verzoekCadY, 170);
+    } else {
+      drawWideHighlightedField("Uit te voeren handeling", "Aansluiten medicatie via sc/iv infuuspomp", verzoekActionY, 170);
+    }
+    drawWideHighlightedField("Startdatum", formatDateNl(state.midazolam.startDate), verzoekStartDatumY);
+    drawWideHighlightedField(
+      "Diagnose / ziektebeeld",
+      safe(state.midazolam.diagnosis),
+      indicatieDiagnoseY - indicatieContentDownShift
+    );
+    drawWideHighlightedField(
+      "Indicatie / refractair symptoom",
+      safe(state.midazolam.indication),
+      indicatieSymptoomY - indicatieContentDownShift
+    );
 
     const tableX = leftX;
     const tableWidth = contentWidth;
-    const tableHeight = 38;
     const rowHeight = tableHeight / 3;
     const colWidth = tableWidth / 2;
-    const tableY = y - tableHeight + 3;
+    const tableY = medicatieTableY;
     page.drawRectangle({
       x: tableX,
       y: tableY,
@@ -653,17 +699,12 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
       font: fonts.regular,
       color: brandBlue
     });
-    y = tableY - 12;
     page.drawText(
       `${state.midazolam.escalation50PercentAgreement ? "☑" : "☐"} Na minimaal 4 uur zo nodig ophogen met 50%`,
-      { x: leftX, y, size: 9.4, font: fonts.regular, color: brandBlue }
+      { x: leftX, y: medicatieCheckboxY, size: 9.4, font: fonts.regular, color: brandBlue }
     );
-    y -= headingGap + overigeOffset;
-    drawSectionHeadingBox("OVERIGE ADVIEZEN", y);
-    y -= 14;
-    drawWideField("Afwijkend ophoogbeleid / opmerkingen", safe(state.midazolam.remarks), y, 220);
-    y -= 15;
-    drawWideField("Specifieke problemen / bijwerkingen", safe(state.midazolam.sideEffects), y, 220);
+    drawWideField("Afwijkend ophoogbeleid / opmerkingen", safe(state.midazolam.remarks), overigeOpmerkingenY, 220);
+    drawWideField("Specifieke problemen / bijwerkingen", safe(state.midazolam.sideEffects), overigeBijwerkingenY, 220);
   const physicianBoxX = leftX;
   const physicianBoxY = 74;
   const physicianBoxWidth = columnWidth;

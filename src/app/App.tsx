@@ -13,7 +13,7 @@ import { downloadMorfinePdf, downloadMidazolamPdf } from "../pdf/pdfFactory";
 
 const settingsTabIcon = "/icons/healthicons/settings.svg";
 
-type AppTab = "algemeen" | "morfine" | "midazolam" | "recepten" | "instellingen";
+type AppTab = "algemeen" | "morfine" | "midazolam" | "test-pdf" | "recepten" | "instellingen";
 type FooterSectionId = "disclaimer" | "faq" | "privacy" | "bronnen" | "over";
 
 function getTabFromHash(hash: string): AppTab | null {
@@ -22,6 +22,7 @@ function getTabFromHash(hash: string): AppTab | null {
     normalized === "algemeen" ||
     normalized === "morfine" ||
     normalized === "midazolam" ||
+    normalized === "test-pdf" ||
     normalized === "recepten" ||
     normalized === "instellingen"
   ) {
@@ -234,6 +235,13 @@ export function App() {
           </button>
           <button
             type="button"
+            className={`${activeTab === "test-pdf" ? "active" : ""}`}
+            onClick={() => setTab("test-pdf")}
+          >
+            Test PDF
+          </button>
+          <button
+            type="button"
             className={`${activeTab === "recepten" ? "active" : ""} tab-button-recepten`}
             onClick={() => setTab("recepten")}
           >
@@ -348,6 +356,37 @@ export function App() {
             <>
               <PrescriptionAdvice blocks={adviceBlocks} />
             </>
+          ) : null}
+          {activeTab === "test-pdf" ? (
+            <section className="card">
+              <h2>Test PDF</h2>
+              <p className="small-muted">
+                Genereer een testversie van de PDF zonder verplichte veldencontrole. Alleen bedoeld voor testen,
+                niet voor officieel gebruik.
+              </p>
+              <div className="flow-buttons">
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadMorfinePdf(state);
+                    setHasDownloadedMorfine(true);
+                  }}
+                >
+                  <img src="/morfine.svg" alt="" className="button-icon" aria-hidden="true" />
+                  Genereer test PDF morfine
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadMidazolamPdf(state);
+                    setHasDownloadedMidazolam(true);
+                  }}
+                >
+                  <img src="/midazolam.svg" alt="" className="button-icon" aria-hidden="true" />
+                  Genereer test PDF midazolam
+                </button>
+              </div>
+            </section>
           ) : null}
           {activeTab === "instellingen" ? (
             <section className="card">
