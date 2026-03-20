@@ -108,6 +108,8 @@ export function MidazolamTab({
   onDiagnosisUserChange,
   onDiagnosisBlur
 }: MidazolamTabProps) {
+  const formatNl = (value: number, minimumFractionDigits = 0, maximumFractionDigits = 2) =>
+    new Intl.NumberFormat("nl-NL", { minimumFractionDigits, maximumFractionDigits }).format(value);
   const bundle = computeMidazolamSuggestionBundle(data);
   const [diagnosisMenuOpen, setDiagnosisMenuOpen] = useState(false);
   const [indicationMenuOpen, setIndicationMenuOpen] = useState(false);
@@ -154,6 +156,58 @@ export function MidazolamTab({
     }
     return midazolamIndicationOptions.filter((option) => option.toLowerCase().includes(needle));
   }, [data.indication]);
+  const minPumpMlPerHour = 0.1;
+  const pumpStepMlPerHour = 0.01;
+  const minContinueDoseAtCurrentConcentration = minPumpMlPerHour * 24 * data.concentrationMgPerMl;
+  const parsedContinueDose = Number.parseFloat(data.continueDoseMgPer24h.replace(",", "."));
+  const currentMlPerHour = parsedContinueDose / 24 / data.concentrationMgPerMl;
+  const continueDoseTooLowForPump =
+    Number.isFinite(parsedContinueDose) &&
+    parsedContinueDose > 0 &&
+    Number.isFinite(currentMlPerHour) &&
+    currentMlPerHour < minPumpMlPerHour;
+  const currentPumpStepRaw = currentMlPerHour / pumpStepMlPerHour;
+  const currentPumpStepRounded = Math.round(currentPumpStepRaw);
+  const onExactPumpStep =
+    Number.isFinite(currentPumpStepRaw) &&
+    Math.abs(currentPumpStepRaw - currentPumpStepRounded) < 1e-8;
+  const continueDoseBetweenPumpSteps =
+    Number.isFinite(parsedContinueDose) &&
+    parsedContinueDose > 0 &&
+    Number.isFinite(currentMlPerHour) &&
+    currentMlPerHour >= minPumpMlPerHour &&
+    !onExactPumpStep;
+  const lowerPumpMlPerHour = Math.max(
+    minPumpMlPerHour,
+    Math.floor(currentPumpStepRaw) * pumpStepMlPerHour
+  );
+  const upperPumpMlPerHour = Math.ceil(currentPumpStepRaw) * pumpStepMlPerHour;
+  const lowerPumpDoseMgPer24h = lowerPumpMlPerHour * 24 * data.concentrationMgPerMl;
+  const upperPumpDoseMgPer24h = upperPumpMlPerHour * 24 * data.concentrationMgPerMl;
+  const lowerConcentrationOption = midazolamConcentrations
+    .filter((option) => option.value < data.concentrationMgPerMl)
+    .sort((a, b) => b.value - a.value)[0];
+  const applyLowerConcentration = () => {
+    if (!lowerConcentrationOption) {
+      return;
+    }
+    onChange({
+      ...data,
+      concentrationMgPerMl: lowerConcentrationOption.value as 1 | 2 | 5
+    });
+  };
+  const applyMinimalPumpDose = () => {
+    onChange({
+      ...data,
+      continueDoseMgPer24h: formatNl(minContinueDoseAtCurrentConcentration)
+    });
+  };
+  const applyPumpRoundedDose = (targetDoseMgPer24h: number) => {
+    onChange({
+      ...data,
+      continueDoseMgPer24h: formatNl(targetDoseMgPer24h)
+    });
+  };
 
   return (
     <section className="card">
@@ -385,6 +439,33 @@ export function MidazolamTab({
               <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
             </FormField>
           </div>
+          {continueDoseTooLowForPump ? (
+            <div className="conversion-summary morfine-conversion-summary--red">
+              <p>
+                dosis is te laag voor de pompstand. Kies een andere concentratie of een hogere dosis.
+              </p>
+              <div className="segment">
+                <button type="button" onClick={applyLowerConcentration} disabled={!lowerConcentrationOption}>
+                  lagere concentratie
+                </button>
+                <button type="button" onClick={applyMinimalPumpDose}>
+                  dosis naar {formatNl(minContinueDoseAtCurrentConcentration)}mg/24u
+                </button>
+              </div>
+            </div>
+          ) : continueDoseBetweenPumpSteps ? (
+            <div className="conversion-summary morfine-conversion-summary--gold">
+              <p>Dosis niet exact mogelijk, maak een keuze</p>
+              <div className="segment">
+                <button type="button" onClick={() => applyPumpRoundedDose(lowerPumpDoseMgPer24h)}>
+                  {formatNl(lowerPumpDoseMgPer24h)}mg/24u ({formatNl(lowerPumpMlPerHour, 2, 2)}ml/uur)
+                </button>
+                <button type="button" onClick={() => applyPumpRoundedDose(upperPumpDoseMgPer24h)}>
+                  {formatNl(upperPumpDoseMgPer24h)}mg/24u ({formatNl(upperPumpMlPerHour, 2, 2)}ml/uur)
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="stack">
             <label className="checkbox-line">
@@ -402,7 +483,9 @@ export function MidazolamTab({
               ml/uur = mg/uur / concentratie. Product: {productText.midazolam}.
             </p>
           ) : null}
-          <p className="small-muted">{bundle.suggestions.explanation}</p>
+          {bundle.suggestions.explanation ? (
+            <p className="small-muted">{bundle.suggestions.explanation}</p>
+          ) : null}
         </div>
       </div>
 

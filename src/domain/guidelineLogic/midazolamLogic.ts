@@ -180,7 +180,6 @@ export function suggestMidazolamSettings(input: MidazolamGuidelineInput): Midazo
     continueDoseMgPer24h: input.currentContinueDoseMgPer24h ?? firstOption?.continueDoseMgPer24h ?? 36,
     bolusMg: firstOption?.bolusMg ?? 5,
     lockoutHours: firstOption?.lockoutHours ?? 2,
-    explanation:
-      "Gebruik het adviesvenster voor lage/hoge scenario's. Waarden worden in mg/24u getoond en lockout staat op 2 uur."
+    explanation: ""
   };
 }

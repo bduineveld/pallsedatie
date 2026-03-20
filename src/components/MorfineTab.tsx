@@ -123,6 +123,8 @@ export function MorfineTab({
   onDiagnosisUserChange,
   onDiagnosisBlur
 }: MorfineTabProps) {
+  const formatNl = (value: number, minimumFractionDigits = 0, maximumFractionDigits = 2) =>
+    new Intl.NumberFormat("nl-NL", { minimumFractionDigits, maximumFractionDigits }).format(value);
   const bundle = computeMorfineSuggestionBundle(data);
   const requiredLabel = (text: string) => (
     <>
@@ -222,6 +224,37 @@ export function MorfineTab({
       : data.opioidInputMode === "existing" || (data.opioidInputMode === "naive" && hasMorfineRiskFactor)
           ? "morfine-conversion-summary--gold"
           : "";
+  const minPumpMlPerHour = 0.1;
+  const minContinueDoseAtCurrentConcentration = minPumpMlPerHour * 24 * data.concentrationMgPerMl;
+  const parsedContinueDose = Number.parseFloat(data.continueDoseMgPer24h.replace(",", "."));
+  const currentMlPerHour = parsedContinueDose / 24 / data.concentrationMgPerMl;
+  const continueDoseTooLowForPump =
+    Number.isFinite(parsedContinueDose) &&
+    parsedContinueDose > 0 &&
+    Number.isFinite(currentMlPerHour) &&
+    currentMlPerHour < minPumpMlPerHour;
+  const pumpStepMlPerHour = 0.01;
+  const currentPumpStepRaw = currentMlPerHour / pumpStepMlPerHour;
+  const currentPumpStepRounded = Math.round(currentPumpStepRaw);
+  const onExactPumpStep =
+    Number.isFinite(currentPumpStepRaw) &&
+    Math.abs(currentPumpStepRaw - currentPumpStepRounded) < 1e-8;
+  const continueDoseBetweenPumpSteps =
+    Number.isFinite(parsedContinueDose) &&
+    parsedContinueDose > 0 &&
+    Number.isFinite(currentMlPerHour) &&
+    currentMlPerHour >= minPumpMlPerHour &&
+    !onExactPumpStep;
+  const lowerPumpMlPerHour = Math.max(
+    minPumpMlPerHour,
+    Math.floor(currentPumpStepRaw) * pumpStepMlPerHour
+  );
+  const upperPumpMlPerHour = Math.ceil(currentPumpStepRaw) * pumpStepMlPerHour;
+  const lowerPumpDoseMgPer24h = lowerPumpMlPerHour * 24 * data.concentrationMgPerMl;
+  const upperPumpDoseMgPer24h = upperPumpMlPerHour * 24 * data.concentrationMgPerMl;
+  const lowerConcentrationOption = morfineConcentrations
+    .filter((option) => option.value < data.concentrationMgPerMl)
+    .sort((a, b) => b.value - a.value)[0];
 
   const applyCalculated24h = (targetMgPer24h: number) => {
     const bolus = targetMgPer24h / 6;
@@ -242,6 +275,37 @@ export function MorfineTab({
       startBolusMg: formatMedicalNumber(bundle.suggestions.startBolusMg),
       bolusMg: formatMedicalNumber(bundle.suggestions.bolusMg),
       lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
+    });
+  };
+  const naivePracticalContinueDoseMgPer24h = 24;
+  const applyNaivePracticalAdvice = () => {
+    onChange({
+      ...data,
+      continueDoseMgPer24h: formatMedicalNumber(naivePracticalContinueDoseMgPer24h),
+      startBolusMg: formatMedicalNumber(bundle.suggestions.startBolusMg),
+      bolusMg: formatMedicalNumber(bundle.suggestions.bolusMg),
+      lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
+    });
+  };
+  const applyLowerConcentration = () => {
+    if (!lowerConcentrationOption) {
+      return;
+    }
+    onChange({
+      ...data,
+      concentrationMgPerMl: lowerConcentrationOption.value as 1 | 10 | 20
+    });
+  };
+  const applyMinimalPumpDose = () => {
+    onChange({
+      ...data,
+      continueDoseMgPer24h: formatMedicalNumber(minContinueDoseAtCurrentConcentration)
+    });
+  };
+  const applyPumpRoundedDose = (targetDoseMgPer24h: number) => {
+    onChange({
+      ...data,
+      continueDoseMgPer24h: formatNl(targetDoseMgPer24h)
     });
   };
 
@@ -566,14 +630,31 @@ export function MorfineTab({
             <div className={`conversion-summary ${morfineRiskStripeClass}`}>
               <WarningBanner warnings={bundle.warnings} />
               {data.opioidInputMode === "naive" ? (
-                <p>
-                  Opioïd-naïef{data.ageOver70 ? " en >70 jaar" : ""}
-                  {data.egfrUnder30 ? " met eGFR <30" : ""}. Advies: Oplaaddosis{" "}
-                  {formatMedicalNumber(bundle.suggestions.startBolusMg)}mg, continue dosis{" "}
-                  {formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)}mg/24u, bolus{" "}
-                  {formatMedicalNumber(bundle.suggestions.bolusMg)}mg, lockout{" "}
-                  {formatMedicalNumber(bundle.suggestions.lockoutHours)}uur.
-                </p>
+                <>
+                  <p>
+                    {data.ageOver70 && data.egfrUnder30
+                      ? "Opioïd-naïef en >70 jaar met eGFR <30."
+                      : "Opioïd-naïef."}
+                  </p>
+                  <ul>
+                    <li>
+                      Richtlijn: Continue dosis {formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)}mg/24u,
+                      met oplaaddosis van {formatMedicalNumber(bundle.suggestions.startBolusMg)}mg, bolus{" "}
+                      {formatMedicalNumber(bundle.suggestions.bolusMg)}mg, lockout{" "}
+                      {formatMedicalNumber(bundle.suggestions.lockoutHours)}uur.
+                    </li>
+                    <li>
+                      Praktisch: Laagste pompstand is 0,1ml/uur dus{" "}
+                      {formatMedicalNumber(naivePracticalContinueDoseMgPer24h)}mg/24u
+                      {data.ageOver70 && data.egfrUnder30 ? (
+                        <>
+                          , <u>dit is ruim het dubbele</u>
+                        </>
+                      ) : null}
+                      .
+                    </li>
+                  </ul>
+                </>
               ) : (
                 <>
                   <div className="conversion-table-wrapper">
@@ -639,9 +720,14 @@ export function MorfineTab({
                   </button>
                 </div>
               ) : (
-                <button type="button" onClick={applyAdvice}>
-                  Advies overnemen
-                </button>
+                <div className="segment">
+                  <button type="button" onClick={applyAdvice}>
+                    Richtlijn overnemen
+                  </button>
+                  <button type="button" onClick={applyNaivePracticalAdvice}>
+                    Praktisch overnemen
+                  </button>
+                </div>
               )}
             </div>
           ) : null}
@@ -661,6 +747,33 @@ export function MorfineTab({
               <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
             </FormField>
           </div>
+          {continueDoseTooLowForPump ? (
+            <div className="conversion-summary morfine-conversion-summary--red">
+              <p>
+                dosis is te laag voor de pompstand. Kies een andere concentratie of een hogere dosis.
+              </p>
+              <div className="segment">
+                <button type="button" onClick={applyLowerConcentration} disabled={!lowerConcentrationOption}>
+                  lagere concentratie
+                </button>
+                <button type="button" onClick={applyMinimalPumpDose}>
+                  dosis naar {formatMedicalNumber(minContinueDoseAtCurrentConcentration)}mg/24u
+                </button>
+              </div>
+            </div>
+          ) : continueDoseBetweenPumpSteps ? (
+            <div className="conversion-summary morfine-conversion-summary--gold">
+              <p>Dosis niet exact mogelijk, maak een keuze</p>
+              <div className="segment">
+                <button type="button" onClick={() => applyPumpRoundedDose(lowerPumpDoseMgPer24h)}>
+                  {formatNl(lowerPumpDoseMgPer24h)}mg/24u ({formatNl(lowerPumpMlPerHour, 2, 2)}ml/uur)
+                </button>
+                <button type="button" onClick={() => applyPumpRoundedDose(upperPumpDoseMgPer24h)}>
+                  {formatNl(upperPumpDoseMgPer24h)}mg/24u ({formatNl(upperPumpMlPerHour, 2, 2)}ml/uur)
+                </button>
+              </div>
+            </div>
+          ) : null}
           {showMlPerHour ? (
             <p className="small-muted">
               ml/uur = (mg/24u / 24) / concentratie. Product: {productText.morfine}.
