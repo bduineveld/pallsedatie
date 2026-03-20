@@ -9,7 +9,7 @@ import { buildPrescriptionAdvice } from "../domain/prescriptionAdvice/buildAdvic
 import { isOlderThan70 } from "../domain/validation/age";
 import { validateSharedForPdf } from "../domain/validation/formValidation";
 import { getPdfReadiness } from "../domain/validation/pdfReadiness";
-import { downloadMorfinePdf, downloadMidazolamPdf } from "../pdf/pdfFactory";
+import { previewMorfinePdf, previewMidazolamPdf } from "../pdf/pdfFactory";
 
 const settingsTabIcon = "/icons/healthicons/settings.svg";
 
@@ -295,11 +295,11 @@ export function App() {
                 morfineErrors={readiness.morfineReady.errors}
                 midazolamErrors={readiness.midazolamReady.errors}
                 onDownloadMorfine={() => {
-                  downloadMorfinePdf(state);
+                  previewMorfinePdf(state);
                   setHasDownloadedMorfine(true);
                 }}
                 onDownloadMidazolam={() => {
-                  downloadMidazolamPdf(state);
+                  previewMidazolamPdf(state);
                   setHasDownloadedMidazolam(true);
                 }}
               />
@@ -321,6 +321,7 @@ export function App() {
                 data={state.midazolam}
                 onChange={handleMidazolamChange}
                 showMlPerHour={state.general.showMlPerHour}
+                patientGender={state.general.patient.gender}
                 onDiagnosisUserChange={() =>
                   setDiagnosisDirty((prev) => ({ ...prev, midazolam: true }))
                 }
@@ -337,11 +338,11 @@ export function App() {
                 morfineErrors={readiness.morfineReady.errors}
                 midazolamErrors={readiness.midazolamReady.errors}
                 onDownloadMorfine={() => {
-                  downloadMorfinePdf(state);
+                  previewMorfinePdf(state);
                   setHasDownloadedMorfine(true);
                 }}
                 onDownloadMidazolam={() => {
-                  downloadMidazolamPdf(state);
+                  previewMidazolamPdf(state);
                   setHasDownloadedMidazolam(true);
                 }}
               />
@@ -368,7 +369,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    downloadMorfinePdf(state);
+                    previewMorfinePdf(state);
                     setHasDownloadedMorfine(true);
                   }}
                 >
@@ -378,7 +379,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    downloadMidazolamPdf(state);
+                    previewMidazolamPdf(state);
                     setHasDownloadedMidazolam(true);
                   }}
                 >

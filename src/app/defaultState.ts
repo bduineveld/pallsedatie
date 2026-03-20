@@ -38,6 +38,8 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
       pharmacy: "",
       pharmacyPhone: "",
       showMlPerHour: false,
+      hideMlPerHourOnPdf: false,
+      hideBetaWarningOnPdf: false,
       hideLogoOnPdf: false
     },
     morfine: {

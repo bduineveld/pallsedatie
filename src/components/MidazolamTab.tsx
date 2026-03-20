@@ -16,6 +16,7 @@ interface MidazolamTabProps {
   data: MidazolamFormData;
   onChange: (data: MidazolamFormData) => void;
   showMlPerHour: boolean;
+  patientGender: string;
   onDiagnosisUserChange?: () => void;
   onDiagnosisBlur?: () => void;
 }
@@ -95,10 +96,15 @@ function applyAutocompleteSelection(currentValue: string, option: string): strin
   return [...previousSelections, option].join(", ");
 }
 
+function defaultCadCharriereForGender(gender: string): MidazolamFormData["cadSizeCharriere"] {
+  return gender === "man" ? 14 : 12;
+}
+
 export function MidazolamTab({
   data,
   onChange,
   showMlPerHour,
+  patientGender,
   onDiagnosisUserChange,
   onDiagnosisBlur
 }: MidazolamTabProps) {
@@ -408,7 +414,18 @@ export function MidazolamTab({
               <input
                 type="checkbox"
                 checked={data.cadPlacementAllowed}
-                onChange={(event) => onChange({ ...data, cadPlacementAllowed: event.target.checked })}
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  if (checked) {
+                    onChange({
+                      ...data,
+                      cadPlacementAllowed: true,
+                      cadSizeCharriere: defaultCadCharriereForGender(patientGender)
+                    });
+                  } else {
+                    onChange({ ...data, cadPlacementAllowed: false });
+                  }
+                }}
               />
               Graag CAD plaatsen
             </label>

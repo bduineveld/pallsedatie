@@ -627,10 +627,26 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
           <label className="checkbox-line">
             <input
               type="checkbox"
-              checked={data.showMlPerHour}
-              onChange={(event) => onChange({ ...data, showMlPerHour: event.target.checked })}
+              checked={data.hideMlPerHourOnPdf}
+              onChange={(event) => onChange({ ...data, hideMlPerHourOnPdf: event.target.checked })}
             />
-            toon doseringen naast mg/24u ook in ml/uur
+            <span className="checkbox-line-label">
+              dosering enkel in mg{" "}
+              <code className="checkbox-line-example">
+                {data.hideMlPerHourOnPdf ? "20mg/24u" : "20mg/24u (0,1ml/u)"}
+              </code>
+            </span>
+          </label>
+          <label
+            className="checkbox-line"
+            title="deze site is nog niet gevalideerd, en het is nog niet de bedoeling dat deze professioneel gebruikt wordt"
+          >
+            <input
+              type="checkbox"
+              checked={data.hideBetaWarningOnPdf}
+              onChange={(event) => onChange({ ...data, hideBetaWarningOnPdf: event.target.checked })}
+            />
+            verberg waarschuwing beta test
           </label>
           <label className="checkbox-line">
             <input

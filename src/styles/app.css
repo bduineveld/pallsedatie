@@ -521,6 +521,18 @@ textarea {
   align-items: flex-start;
 }
 
+.checkbox-line-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.checkbox-line-example {
+  color: #64748b;
+  font-size: 0.94em;
+  line-height: 1;
+}
+
 .checkbox-line input[type="checkbox"],
 .checkbox-line input[type="radio"] {
   accent-color: var(--brand-navy);

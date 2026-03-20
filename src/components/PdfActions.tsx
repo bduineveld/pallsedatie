@@ -31,8 +31,8 @@ export function PdfActions({
 
   const isMorfine = mode === "morfine";
   const title = isMorfine
-    ? "Download uitvoeringsverzoek morfine"
-    : "Download uitvoeringsverzoek midazolam";
+    ? "Bekijk uitvoeringsverzoek morfine"
+    : "Bekijk uitvoeringsverzoek midazolam";
   const legalConfirmationTextMorfine =
     "Deze tool geeft een suggestie op basis van de Pallialine-richtlijn Pijn bij patiënten met kanker (december 2019). Ik blijf als voorschrijver volledig verantwoordelijk voor indicatie, dosering en uiteindelijke inhoud van het uitvoeringsverzoek. Ik lees het nog één keer door voordat ik hem onderteken.";
   const legalConfirmationTextMidazolam =

@@ -1,11 +1,17 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import { AppFormState } from "../types/models";
 import { formatDateNl } from "./formatters";
+import { checkboxSvgData } from "./checkboxAsset";
 import { getPallsedatieLogoSvgData } from "./logoAsset";
 import { loadSourceSansFonts } from "./sourceSansFonts";
 
 function safe(value: string): string {
-  return value.trim() || "-";
+  return value.trim();
+}
+
+function withUnit(value: string, unit: string): string {
+  const safeValue = safe(value);
+  return safeValue ? `${safeValue} ${unit}` : "";
 }
 
 function hexToRgbColor(hex: string) {
@@ -37,25 +43,57 @@ function hexToGrayColor(hex: string) {
   return rgb(luma, luma, luma);
 }
 
+/** Compacte weergave met komma als decimaalteken (PDF / NL). */
 function formatCompactNumber(value: number): string {
-  return value.toFixed(2).replace(/\.?0+$/, "");
+  const s = value.toFixed(2).replace(/\.?0+$/, "");
+  return s.replace(".", ",");
 }
 
-function buildContinueDoseLabel(
+/** Continue dosis: mg/24u + optioneel ml/uur tussen haakjes (zonder "="), voor tweekleurige PDF-tekst. */
+function parseContinueDoseForPdf(
   doseText: string,
   concentrationMgPerMl: number,
   showMlPerHour: boolean
-): string {
+): { primaryDisplay: string; lightSuffix: string | null } {
   const safeDoseText = safe(doseText);
+  if (!safeDoseText) {
+    return { primaryDisplay: "", lightSuffix: null };
+  }
+  const base = `${safeDoseText} mg/24u`;
   if (!showMlPerHour) {
-    return `${safeDoseText} mg/24u`;
+    return { primaryDisplay: base, lightSuffix: null };
   }
   const doseNumber = Number.parseFloat(doseText.replace(",", "."));
   if (!Number.isFinite(doseNumber) || concentrationMgPerMl <= 0) {
-    return `${safeDoseText} mg/24u`;
+    return { primaryDisplay: base, lightSuffix: null };
   }
   const mlPerHour = doseNumber / 24 / concentrationMgPerMl;
-  return `${safeDoseText} mg/24u (=${formatCompactNumber(mlPerHour)} ml/uur)`;
+  return {
+    primaryDisplay: base,
+    lightSuffix: ` (${formatCompactNumber(mlPerHour)} ml/uur)`
+  };
+}
+
+/** Oplaaddosis / bolus: mg-deel + optioneel ml-tussen haakjes (zelfde logica als PDF-weergave). */
+function parseMgDoseWithOptionalMl(
+  mgText: string,
+  concentrationMgPerMl: number,
+  showMlOnPdf: boolean
+): { mgDisplay: string; mlSuffix: string | null } {
+  const safeMg = safe(mgText);
+  if (!safeMg) {
+    return { mgDisplay: "", mlSuffix: null };
+  }
+  const base = `${safeMg} mg`;
+  if (!showMlOnPdf || concentrationMgPerMl <= 0) {
+    return { mgDisplay: base, mlSuffix: null };
+  }
+  const mgNum = Number.parseFloat(mgText.replace(",", "."));
+  if (!Number.isFinite(mgNum)) {
+    return { mgDisplay: base, mlSuffix: null };
+  }
+  const ml = mgNum / concentrationMgPerMl;
+  return { mgDisplay: base, mlSuffix: ` (${formatCompactNumber(ml)} ml)` };
 }
 
 function physicianRoleLabel(
@@ -314,6 +352,61 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     });
   };
 
+  const drawFieldWithOptionalLightSuffix = (
+    label: string,
+    primaryDisplay: string,
+    lightSuffix: string | null,
+    x: number,
+    y: number,
+    labelWidth: number,
+    endX: number,
+    highlightValue = false
+  ) => {
+    const valueX = x + labelWidth;
+    if (highlightValue) {
+      page.drawRectangle({
+        x: valueX,
+        y: y - 1.8,
+        width: Math.max(endX - valueX, 0),
+        height: 10.8,
+        color: valueFillColor
+      });
+    }
+    page.drawText(`${label}:`, { x, y, size: 9, font: fonts.semibold, color: brandBlue });
+    const valueFontSize = 10;
+    if (primaryDisplay) {
+      page.drawText(primaryDisplay, { x: valueX, y, size: valueFontSize, font: fonts.regular, color: brandBlue });
+    }
+    if (lightSuffix) {
+      const primaryWidth = fonts.regular.widthOfTextAtSize(primaryDisplay, valueFontSize);
+      page.drawText(lightSuffix, {
+        x: valueX + primaryWidth,
+        y,
+        size: valueFontSize,
+        font: fonts.regular,
+        color: dottedLineColor
+      });
+    }
+    page.drawLine({
+      start: { x: valueX, y: y - 2 },
+      end: { x: endX, y: y - 2 },
+      thickness: 0.3,
+      color: highlightValue ? dottedLineColor : lineColor,
+      dashArray: highlightValue ? [1.5, 1.5] : undefined
+    });
+  };
+
+  const drawFieldMgWithOptionalMlSuffix = (
+    label: string,
+    parsed: { mgDisplay: string; mlSuffix: string | null },
+    x: number,
+    y: number,
+    labelWidth: number,
+    endX: number,
+    highlightValue = false
+  ) =>
+    drawFieldWithOptionalLightSuffix(label, parsed.mgDisplay, parsed.mlSuffix, x, y, labelWidth, endX, highlightValue);
+
   const drawColumnField = (
     label: string,
     value: string,
@@ -326,6 +419,146 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     drawField(label, value, leftX, y, labelWidth, marginX + contentWidth);
   const drawWideHighlightedField = (label: string, value: string, y: number, labelWidth = 170) =>
     drawField(label, value, leftX, y, labelWidth, marginX + contentWidth, true);
+  const drawWideTwoLineHighlightedField = (
+    label: string,
+    firstValue: string,
+    secondValue: string,
+    firstY: number,
+    secondY: number,
+    labelWidth = 170
+  ) => {
+    const valueX = leftX + labelWidth;
+    const endX = marginX + contentWidth;
+    const topY = Math.max(firstY, secondY) + 9;
+    const bottomY = Math.min(firstY, secondY) - 1.8;
+    page.drawRectangle({
+      x: valueX,
+      y: bottomY,
+      width: Math.max(endX - valueX, 0),
+      height: Math.max(topY - bottomY, 0),
+      color: valueFillColor
+    });
+    page.drawText(`${label}:`, { x: leftX, y: firstY, size: 9, font: fonts.semibold, color: brandBlue });
+    page.drawText(firstValue, { x: valueX, y: firstY, size: 10, font: fonts.regular, color: brandBlue });
+    page.drawText(secondValue, { x: valueX, y: secondY, size: 10, font: fonts.regular, color: brandBlue });
+    page.drawLine({
+      start: { x: valueX, y: firstY - 2 },
+      end: { x: endX, y: firstY - 2 },
+      thickness: 0.3,
+      color: dottedLineColor,
+      dashArray: [1.5, 1.5]
+    });
+    page.drawLine({
+      start: { x: valueX, y: secondY - 2 },
+      end: { x: endX, y: secondY - 2 },
+      thickness: 0.3,
+      color: dottedLineColor,
+      dashArray: [1.5, 1.5]
+    });
+  };
+  const drawWideThreeLineHighlightedField = (
+    label: string,
+    firstValue: string,
+    secondValue: string,
+    thirdValue: string,
+    firstY: number,
+    secondY: number,
+    thirdY: number,
+    labelWidth = 170
+  ) => {
+    const valueX = leftX + labelWidth;
+    const endX = marginX + contentWidth;
+    const topY = Math.max(firstY, secondY, thirdY) + 9;
+    const bottomY = Math.min(firstY, secondY, thirdY) - 1.8;
+    page.drawRectangle({
+      x: valueX,
+      y: bottomY,
+      width: Math.max(endX - valueX, 0),
+      height: Math.max(topY - bottomY, 0),
+      color: valueFillColor
+    });
+    page.drawText(`${label}:`, { x: leftX, y: firstY, size: 9, font: fonts.semibold, color: brandBlue });
+    page.drawText(firstValue, { x: valueX, y: firstY, size: 10, font: fonts.regular, color: brandBlue });
+    page.drawText(secondValue, { x: valueX, y: secondY, size: 10, font: fonts.regular, color: brandBlue });
+    page.drawText(thirdValue, { x: valueX, y: thirdY, size: 10, font: fonts.regular, color: brandBlue });
+    page.drawLine({
+      start: { x: valueX, y: firstY - 2 },
+      end: { x: endX, y: firstY - 2 },
+      thickness: 0.3,
+      color: dottedLineColor,
+      dashArray: [1.5, 1.5]
+    });
+    page.drawLine({
+      start: { x: valueX, y: secondY - 2 },
+      end: { x: endX, y: secondY - 2 },
+      thickness: 0.3,
+      color: dottedLineColor,
+      dashArray: [1.5, 1.5]
+    });
+    page.drawLine({
+      start: { x: valueX, y: thirdY - 2 },
+      end: { x: endX, y: thirdY - 2 },
+      thickness: 0.3,
+      color: dottedLineColor,
+      dashArray: [1.5, 1.5]
+    });
+  };
+  const splitAdviceIntoThreeLines = (raw: string): { line1: string; line2: string; line3: string } => {
+    const t = raw.trim();
+    if (!t) {
+      return { line1: "", line2: "", line3: "" };
+    }
+    const lines = raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (lines.length === 0) {
+      return { line1: "", line2: "", line3: "" };
+    }
+    const [line1 = "", line2 = "", line3 = ""] = lines;
+    return { line1, line2, line3 };
+  };
+  const drawRoundedCheckboxLine = (checked: boolean, text: string, x: number, y: number) => {
+    const boxSize = 10;
+    const boxY = y - 1.6;
+    const vb = checkboxSvgData.viewBox;
+    const scale = boxSize / vb.height;
+    const fillRgb = renderInGrayscale
+      ? hexToGrayColor(checkboxSvgData.fillHex)
+      : hexToRgbColor(checkboxSvgData.fillHex);
+    const strokeRgb = renderInGrayscale
+      ? hexToGrayColor(checkboxSvgData.strokeHex)
+      : hexToRgbColor(checkboxSvgData.strokeHex);
+    page.drawSvgPath(checkboxSvgData.pathD, {
+      x,
+      y: boxY + boxSize,
+      scale,
+      color: fillRgb,
+      borderColor: strokeRgb,
+      borderWidth: checkboxSvgData.strokeWidth,
+      ...(checkboxSvgData.borderDashArray?.length
+        ? {
+            borderDashArray: checkboxSvgData.borderDashArray,
+            borderDashPhase: checkboxSvgData.borderDashPhase ?? 0
+          }
+        : {})
+    });
+    if (checked) {
+      page.drawLine({
+        start: { x: x + 2.2, y: boxY + 4.7 },
+        end: { x: x + 4.2, y: boxY + 2.8 },
+        thickness: 1.1,
+        color: brandBlue
+      });
+      page.drawLine({
+        start: { x: x + 4.1, y: boxY + 2.8 },
+        end: { x: x + 7.8, y: boxY + 7.7 },
+        thickness: 1.1,
+        color: brandBlue
+      });
+    }
+    page.drawText(text, { x: x + boxSize + 6, y, size: 9.4, font: fonts.regular, color: brandBlue });
+  };
 
   const renderMainPage = () => {
     const patientName = safe(
@@ -550,49 +783,62 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     true
   );
 
-    const mm = 72 / 25.4;
-    const twoCm = mm * 20;
-    const headingGap = mm * 8;
-    const indicatieOffset = mm * 2;
-    const medicatieOffset = mm * 5;
-    const overigeOffset = mm * 6;
-    const fiveMm = mm * 5;
+    const sectionGap = mmToPt * 7;
+    const sectionTopPadding = 12;
+    const sectionBottomPadding = 6;
     const headingToFirstFieldOffset = 14;
-    const verzoekHeadingToFirstFieldOffset = 21;
     const indicatieHeadingToFirstFieldOffset = 18;
-    const indicatieHeadingDownShift = mm * 5;
+    const verzoekHeadingToFirstFieldOffset = indicatieHeadingToFirstFieldOffset;
     const indicatieContentDownShift = 4;
     const medicatieContentDownShift = 8;
     const overigeContentDownShift = 4;
     const fieldGap = 15;
-    const verzoekHeadingY = orgTitleY - 74 + twoCm - fiveMm;
+    const verzoekHeadingY = patientTableBottom - sectionGap - sectionTopPadding;
     const verzoekActionY = verzoekHeadingY - verzoekHeadingToFirstFieldOffset;
     const verzoekStartDatumY = verzoekActionY - fieldGap;
     const verzoekBottomY = verzoekStartDatumY - 8;
 
-    const indicatieHeadingY = verzoekStartDatumY - (headingGap + indicatieOffset) - indicatieHeadingDownShift;
+    const indicatieHeadingY = verzoekBottomY - sectionBottomPadding - sectionGap - sectionTopPadding;
     const indicatieDiagnoseY = indicatieHeadingY - indicatieHeadingToFirstFieldOffset;
     const indicatieSymptoomY = indicatieDiagnoseY - fieldGap;
     const indicatieBottomY = indicatieSymptoomY - 8;
 
-    const medicatieHeadingY = indicatieSymptoomY - (headingGap + medicatieOffset);
+    const medicatieHeadingY = indicatieBottomY - sectionBottomPadding - sectionGap - sectionTopPadding;
     const medicatieContentStartY = medicatieHeadingY - headingToFirstFieldOffset - medicatieContentDownShift;
-    const medicatieLastFieldY = medicatieContentStartY - fieldGap * 2;
-    const medicatieCheckboxY = medicatieLastFieldY - fieldGap;
-    const medicatieBottomY = medicatieCheckboxY - 8;
+    const medFieldY1 = medicatieContentStartY;
+    const medFieldY2 = medFieldY1 - fieldGap;
+    const medFieldY3 = medFieldY2 - fieldGap;
+    const medicatieCheckboxY = medFieldY3;
+    const medicatieBlockBottomTightening = mmToPt * 3;
+    const medicatieBottomY = medicatieCheckboxY - 14 + medicatieBlockBottomTightening;
 
-    const overigeHeadingY = medicatieCheckboxY - (headingGap + overigeOffset);
-    const overigeAdviesY = overigeHeadingY - headingToFirstFieldOffset - overigeContentDownShift;
-    const overigeBijwerkingenY = overigeAdviesY - fieldGap;
-    const overigeBottomY = overigeBijwerkingenY - 8;
+    const overigeHeadingY = medicatieBottomY - sectionBottomPadding - sectionGap - sectionTopPadding;
+    const overigeLineGap = 14;
+    const overigeBlockGap = 18;
+    const firstOverigeFieldDownShift = mmToPt * 1;
+    const overigeAdviesY1 = overigeHeadingY - headingToFirstFieldOffset - overigeContentDownShift;
+    const overigeAdviesY2 = overigeAdviesY1 - overigeLineGap;
+    const overigeAdviesY3 = overigeAdviesY2 - overigeLineGap;
+    const overigeOpmerkingenY1 = overigeAdviesY3 - overigeBlockGap;
+    const overigeOpmerkingenY2 = overigeOpmerkingenY1 - overigeLineGap;
+    const overigeOpmerkingenY3 = overigeOpmerkingenY2 - overigeLineGap;
+    const overigeBijwerkingenY1 = overigeOpmerkingenY3 - overigeBlockGap;
+    const overigeBijwerkingenY2 = overigeBijwerkingenY1 - overigeLineGap;
+    const overigeBijwerkingenY3 = overigeBijwerkingenY2 - overigeLineGap;
+    const overigeBottomY = overigeBijwerkingenY3 - 8;
 
     drawSectionHeadingBox("Verzoek", verzoekHeadingY, verzoekBottomY);
     drawSectionHeadingBox("Indicatie", indicatieHeadingY, indicatieBottomY);
     drawSectionHeadingBox("Medicatiegegevens (morfinepomp)", medicatieHeadingY, medicatieBottomY);
     drawSectionHeadingBox("Overige adviezen", overigeHeadingY, overigeBottomY);
 
-    drawWideHighlightedField("Uit te voeren handeling", "Aansluiten medicatie via sc/iv infuuspomp", verzoekActionY, 170);
-    drawWideHighlightedField("Startdatum", formatDateNl(state.morfine.startDate), verzoekStartDatumY);
+    drawWideHighlightedField(
+      "Uit te voeren handeling",
+      "Aansluiten medicatie via sc/iv infuuspomp",
+      verzoekActionY - indicatieContentDownShift,
+      170
+    );
+    drawWideHighlightedField("Startdatum", formatDateNl(state.morfine.startDate), verzoekStartDatumY - indicatieContentDownShift);
     drawWideHighlightedField(
       "Diagnose / ziektebeeld",
       safe(state.morfine.diagnosis),
@@ -604,44 +850,107 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
       indicatieSymptoomY - indicatieContentDownShift
     );
 
-    const medFieldY1 = medicatieContentStartY;
-    const medFieldY2 = medFieldY1 - fieldGap;
-    const medFieldY3 = medFieldY2 - fieldGap;
     const medLabelWidth = 100;
     const medMidX = leftX + contentWidth / 2 + columnGap / 2;
     const medLeftEndX = medMidX - columnGap / 2;
     const medRightEndX = marginX + contentWidth;
 
-    drawField("Medicatie", "Morfine", leftX, medFieldY1, medLabelWidth, medLeftEndX, true);
-    drawField("Concentratie", `${state.morfine.concentrationMgPerMl} mg/ml`, medMidX, medFieldY1, medLabelWidth, medRightEndX, true);
-    drawField("Oplaaddosis", `${safe(state.morfine.bolusMg)} mg`, leftX, medFieldY2, medLabelWidth, medLeftEndX, true);
+    /* Links: Medicatie + Continue dosis + checkbox. Rechts: Oplaaddosis, Bolus, Lockout. */
     drawField(
+      "Medicatie",
+      `Morfine ${state.morfine.concentrationMgPerMl} mg/ml`,
+      leftX,
+      medFieldY1,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawFieldMgWithOptionalMlSuffix(
+      "Oplaaddosis",
+      parseMgDoseWithOptionalMl(
+        state.morfine.startBolusMg,
+        state.morfine.concentrationMgPerMl,
+        !state.general.hideMlPerHourOnPdf
+      ),
+      medMidX,
+      medFieldY1,
+      medLabelWidth,
+      medRightEndX,
+      true
+    );
+    const continueDoseParsed = parseContinueDoseForPdf(
+      state.morfine.continueDoseMgPer24h,
+      state.morfine.concentrationMgPerMl,
+      !state.general.hideMlPerHourOnPdf
+    );
+    drawFieldWithOptionalLightSuffix(
       "Continue dosis",
-      buildContinueDoseLabel(state.morfine.continueDoseMgPer24h, state.morfine.concentrationMgPerMl, state.general.showMlPerHour),
-      medMidX, medFieldY2, medLabelWidth, medRightEndX, true
+      continueDoseParsed.primaryDisplay,
+      continueDoseParsed.lightSuffix,
+      leftX,
+      medFieldY2,
+      medLabelWidth,
+      medLeftEndX,
+      true
     );
-    drawField("Bolus", `${safe(state.morfine.bolusMg)} mg`, leftX, medFieldY3, medLabelWidth, medLeftEndX, true);
-    drawField("Lockout", `${safe(state.morfine.lockoutHours)} uur`, medMidX, medFieldY3, medLabelWidth, medRightEndX, true);
-    page.drawText(
-      `${state.morfine.escalation50PercentAgreement ? "☑" : "☐"} Na minimaal 4 uur zo nodig ophogen met 50%`,
-      { x: leftX, y: medicatieCheckboxY, size: 9.4, font: fonts.regular, color: brandBlue }
+    drawFieldMgWithOptionalMlSuffix(
+      "Bolus",
+      parseMgDoseWithOptionalMl(
+        state.morfine.bolusMg,
+        state.morfine.concentrationMgPerMl,
+        !state.general.hideMlPerHourOnPdf
+      ),
+      medMidX,
+      medFieldY2,
+      medLabelWidth,
+      medRightEndX,
+      true
     );
-    drawWideHighlightedField(
+    drawRoundedCheckboxLine(
+      state.morfine.escalation50PercentAgreement,
+      "Na minimaal 4 uur zo nodig ophogen met 50%",
+      leftX,
+      medicatieCheckboxY - mmToPt
+    );
+    drawField("Lockout", withUnit(state.morfine.lockoutHours, "uur"), medMidX, medFieldY3, medLabelWidth, medRightEndX, true);
+    const advVoortzetten = splitAdviceIntoThreeLines(state.morfine.continuationAdvice);
+    drawWideThreeLineHighlightedField(
+      "Advies voortzetten/stoppen opioïden",
+      advVoortzetten.line1,
+      advVoortzetten.line2,
+      advVoortzetten.line3,
+      overigeAdviesY1 - firstOverigeFieldDownShift,
+      overigeAdviesY2 - firstOverigeFieldDownShift,
+      overigeAdviesY3 - firstOverigeFieldDownShift,
+      190
+    );
+    const advOpmerkingen = splitAdviceIntoThreeLines(state.morfine.remarks);
+    drawWideThreeLineHighlightedField(
       "Afwijkend ophoogbeleid / opmerkingen",
-      safe(state.morfine.continuationAdvice),
-      overigeAdviesY,
+      advOpmerkingen.line1,
+      advOpmerkingen.line2,
+      advOpmerkingen.line3,
+      overigeOpmerkingenY1,
+      overigeOpmerkingenY2,
+      overigeOpmerkingenY3,
       190
     );
-    drawWideHighlightedField(
+    const advBijwerkingen = splitAdviceIntoThreeLines(state.morfine.sideEffects);
+    drawWideThreeLineHighlightedField(
       "Specifieke problemen / bijwerkingen",
-      safe(state.morfine.sideEffects),
-      overigeBijwerkingenY,
+      advBijwerkingen.line1,
+      advBijwerkingen.line2,
+      advBijwerkingen.line3,
+      overigeBijwerkingenY1,
+      overigeBijwerkingenY2,
+      overigeBijwerkingenY3,
       190
     );
+  const footerBlockY = 48 - (72 / 25.4) * 5;
   const physicianBoxX = leftX;
-  const physicianBoxY = 74;
+  const physicianBoxY = footerBlockY;
   const physicianBoxWidth = columnWidth;
-  const physicianBoxHeight = 108;
+  const physicianBoxHeight = patientTableTop - patientTableBottom;
   const physicianHeaderHeight = 16;
   drawRoundedTable(physicianBoxX, physicianBoxY, physicianBoxWidth, physicianBoxHeight, 3, undefined, brandBlue, 1);
   drawTopRoundedBar(
@@ -661,48 +970,117 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     color: rgb(1, 1, 1)
   });
   const physicianValueEndX = physicianBoxX + physicianBoxWidth - 10;
-  let physicianFieldY = physicianBoxY + physicianBoxHeight - physicianHeaderHeight - 14;
-  drawField("Naam", safe(state.general.physician.fullName), physicianBoxX + 8, physicianFieldY, 54, physicianValueEndX, true);
-  physicianFieldY -= 12;
-  drawField("Praktijk", safe(state.general.physician.practice), physicianBoxX + 8, physicianFieldY, 54, physicianValueEndX, true);
-  physicianFieldY -= 12;
-  drawField("Adres", safe(state.general.physician.practiceAddress), physicianBoxX + 8, physicianFieldY, 54, physicianValueEndX, true);
-  physicianFieldY -= 12;
-  drawField("Plaats", safe(state.general.physician.place), physicianBoxX + 8, physicianFieldY, 54, physicianValueEndX, true);
-  physicianFieldY -= 12;
-  drawField("Telefoon", safe(state.general.physician.phone), physicianBoxX + 8, physicianFieldY, 54, physicianValueEndX, true);
-  physicianFieldY -= 12;
-  drawField("Spoednr ANW", safe(state.general.physician.anwPhone), physicianBoxX + 8, physicianFieldY, 54, physicianValueEndX, true);
+  const physicianFieldsTopY = physicianBoxY + physicianBoxHeight - physicianHeaderHeight - 14;
+  const physicianFieldsBottomY = physicianBoxY + 10;
+  const physicianRowGap = (physicianFieldsTopY - physicianFieldsBottomY) / 5;
+  const physicianNameY = physicianFieldsTopY;
+  const physicianPracticeY = physicianNameY - physicianRowGap;
+  const physicianAddressY = physicianPracticeY - physicianRowGap;
+  const physicianPlaceY = physicianAddressY - physicianRowGap;
+  const physicianPhoneY = physicianPlaceY - physicianRowGap;
+  const physicianAnwY = physicianPhoneY - physicianRowGap;
+  drawField("Naam", safe(state.general.physician.fullName), physicianBoxX + 8, physicianNameY, 54, physicianValueEndX, true);
+  drawField("Praktijk", safe(state.general.physician.practice), physicianBoxX + 8, physicianPracticeY, 54, physicianValueEndX, true);
+  drawField("Adres", safe(state.general.physician.practiceAddress), physicianBoxX + 8, physicianAddressY, 54, physicianValueEndX, true);
+  drawField("Plaats", safe(state.general.physician.place), physicianBoxX + 8, physicianPlaceY, 54, physicianValueEndX, true);
+  drawField("Telefoon", safe(state.general.physician.phone), physicianBoxX + 8, physicianPhoneY, 54, physicianValueEndX, true);
+  drawField("Tel. ANW", safe(state.general.physician.anwPhone), physicianBoxX + 8, physicianAnwY, 54, physicianValueEndX, true);
 
   const signatureBoxX = rightX;
-  const signatureBoxY = physicianBoxY;
+  const signatureBoxY = footerBlockY;
   const signatureBoxWidth = columnWidth;
-  const signatureBoxHeight = 56;
-  drawRoundedTable(signatureBoxX, signatureBoxY, signatureBoxWidth, signatureBoxHeight, 3, tableFillColor, brandBlue, 1);
-  const signatureValueEndX = signatureBoxX + signatureBoxWidth - 10;
-  let signatureFieldY = signatureBoxY + signatureBoxHeight - 18;
+  const signatureBoxHeight = physicianBoxHeight;
+  const signatureHeaderHeight = 16;
+  const signatureHeaderBottomY = signatureBoxY + signatureBoxHeight - signatureHeaderHeight;
+  const signaturePad = 10;
+  drawRoundedTable(signatureBoxX, signatureBoxY, signatureBoxWidth, signatureBoxHeight, 3, undefined, brandBlue, 1);
+  drawTopRoundedBar(
+    signatureBoxX,
+    signatureHeaderBottomY,
+    signatureBoxWidth,
+    signatureHeaderHeight,
+    3,
+    brandBlue
+  );
+  page.drawText("Ondertekening", {
+    x: signatureBoxX + 8,
+    y: signatureHeaderBottomY + 5,
+    size: 10,
+    font: fonts.regular,
+    color: rgb(1, 1, 1)
+  });
+  const signatureValueEndX = signatureBoxX + signatureBoxWidth - signaturePad;
+  const plaatsY = signatureHeaderBottomY - 14;
+  const datumY = physicianPracticeY;
   drawField(
-    "Plaats en datum",
-    `${safe(state.general.physician.place)} ${formatDateNl(state.general.physician.date)}`,
-    signatureBoxX + 8,
-    signatureFieldY,
+    "Plaats",
+    safe(state.general.physician.place),
+    signatureBoxX + signaturePad,
+    plaatsY,
     68,
     signatureValueEndX,
     true
   );
-  signatureFieldY -= 15;
-  drawField("Handtekening", "", signatureBoxX + 8, signatureFieldY, 68, signatureValueEndX, true);
+  drawField(
+    "Datum",
+    formatDateNl(state.general.physician.date),
+    signatureBoxX + signaturePad,
+    datumY,
+    68,
+    signatureValueEndX,
+    true
+  );
+  // Handtekening-vlak: rechthoek = expliciet onderkant + bovenkant (geen verborgen minimumhoogte).
+  const handtekeningVlakBottom = signatureBoxY + signaturePad - mmToPt * 0.7;
+  const gapDatumNaarBovenkantVak = mmToPt * 7;
+  const handtekeningVlakTop = datumY - gapDatumNaarBovenkantVak + mmToPt * 4;
+  const handtekeningVlakHeight = Math.max(handtekeningVlakTop - handtekeningVlakBottom, 1);
+  const handtekeningVlakWidth = signatureBoxWidth - signaturePad * 2;
+  page.drawRectangle({
+    x: signatureBoxX + signaturePad,
+    y: handtekeningVlakBottom,
+    width: handtekeningVlakWidth,
+    height: handtekeningVlakHeight,
+    color: rgb(1, 1, 1),
+    borderColor: dottedLineColor,
+    borderWidth: 0.6
+  });
+  page.drawText("Handtekening:", {
+    x: signatureBoxX + signaturePad + 6,
+    y: handtekeningVlakBottom + handtekeningVlakHeight - 8,
+    size: 9,
+    font: fonts.semibold,
+    color: brandBlue
+  });
 
-    const versionText = "v1.0 pallsedatie.nl - dit is een beta test, nog niet voor officieel gebruik";
+    const versionPrefixText = state.general.hideBetaWarningOnPdf
+      ? "v1.0 pallsedatie.nl"
+      : "v1.0 pallsedatie.nl - ";
+    const betaWarningText = "dit is een beta test, nog niet voor officieel gebruik";
     const versionFontSize = 8;
-    const versionX = pageWidth - marginX - fonts.regular.widthOfTextAtSize(versionText, versionFontSize);
-    page.drawText(versionText, {
+    const versionPrefixWidth = fonts.regular.widthOfTextAtSize(versionPrefixText, versionFontSize);
+    const betaWarningWidth = fonts.semibold.widthOfTextAtSize(betaWarningText, versionFontSize);
+    const footerWidth = state.general.hideBetaWarningOnPdf
+      ? versionPrefixWidth
+      : versionPrefixWidth + betaWarningWidth;
+    const versionX = pageWidth - marginX - footerWidth;
+    const versionY = 42 - (72 / 25.4) * 10;
+    page.drawText(versionPrefixText, {
       x: versionX,
-      y: 42 - (72 / 25.4) * 10,
+      y: versionY,
       size: versionFontSize,
       font: fonts.regular,
       color: brandBlue
     });
+    if (!state.general.hideBetaWarningOnPdf) {
+      page.drawText(betaWarningText, {
+        x: versionX + versionPrefixWidth,
+        y: versionY,
+        size: versionFontSize,
+        font: fonts.semibold,
+        color: rgb(0.8, 0.1, 0.1)
+      });
+    }
   };
 
   renderMainPage();

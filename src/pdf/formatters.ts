@@ -9,7 +9,7 @@ export function buildTimestampForFilename(date = new Date()): string {
 
 export function formatDateNl(input: string): string {
   if (!input) {
-    return "-";
+    return "";
   }
   const trimmed = input.trim();
   const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);

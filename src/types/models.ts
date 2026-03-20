@@ -51,6 +51,8 @@ export interface GeneralFormData {
   pharmacy: string;
   pharmacyPhone: string;
   showMlPerHour: boolean;
+  hideMlPerHourOnPdf: boolean;
+  hideBetaWarningOnPdf: boolean;
   hideLogoOnPdf: boolean;
 }
 
