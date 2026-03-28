@@ -727,7 +727,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
 
   const rightInnerX = rightPanelX + 8;
   const rightInnerEndX = rightPanelX + rightPanelWidth - 8;
-  page.drawText("Uitvoerende instelling", {
+  page.drawText("Uitvoerende (thuis)zorgorganisatie", {
     x: rightInnerX,
     y: uitvoerendeY + uitvoerendeHeight - panelHeaderHeight + 5,
     size: 10,

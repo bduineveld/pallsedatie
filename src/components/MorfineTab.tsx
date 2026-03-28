@@ -17,6 +17,8 @@ const reasonIcon = "/icons/healthicons/inpatient-24px.svg";
 const medicinesIcon = "/icons/healthicons/infusion-pump-24px.svg";
 const notesIcon = "/icons/healthicons/clinical-f-24px.svg";
 
+const diagnosisIndicationInputPlaceholder = "Typ of kies een suggestie";
+
 interface MorfineTabProps {
   data: MorfineFormData;
   onChange: (data: MorfineFormData) => void;
@@ -40,16 +42,7 @@ const opioidOptions: { value: OpioidKind; label: string }[] = [
 ];
 const methadoneRatioOptions: ExistingOpioidEntry["methadoneRatioChoice"][] = [5, 6, 7, 8, 9, 10];
 
-const morfineIndicationOptions = [
-  "instabiele pijn",
-  "frequente doorbraakpijn",
-  "slikproblemen",
-  "bewustzijnsdaling",
-  "misselijkheid/braken",
-  "ileus",
-  "ernstige dyspnoe",
-  "praktische reden"
-];
+const morfineIndicationOptions = ["pijn", "dyspnoe"];
 
 const palliativeDiagnosisOptions = [
   "gemetastaseerd longkanker",
@@ -351,6 +344,7 @@ export function MorfineTab({
               onBlur={() => setTimeout(() => setDiagnosisMenuOpen(false), 120)}
             >
               <input
+                placeholder={diagnosisIndicationInputPlaceholder}
                 value={data.diagnosis}
                 onFocus={() => setDiagnosisMenuOpen(true)}
                 onChange={(event) => {
@@ -384,12 +378,13 @@ export function MorfineTab({
               ) : null}
             </div>
           </FormField>
-          <FormField label={requiredLabel("Indicatie / refractair symptoom")}>
+          <FormField label={requiredLabel("Indicatie")}>
             <div
               className="autocomplete-wrapper"
               onBlur={() => setTimeout(() => setIndicationMenuOpen(false), 120)}
             >
               <input
+                placeholder={diagnosisIndicationInputPlaceholder}
                 value={data.indication}
                 onFocus={() => setIndicationMenuOpen(true)}
                 onChange={(event) => {

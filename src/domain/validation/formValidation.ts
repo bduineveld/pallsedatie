@@ -16,7 +16,7 @@ export function validateSharedForPdf(state: AppFormState): string[] {
 export function validateMorfineForm(state: AppFormState): ValidationResult {
   const errors = validateSharedForPdf(state);
   if (!hasText(state.morfine.indication)) {
-    errors.push("Indicatie/refractair symptoom (morfine) is verplicht.");
+    errors.push("Indicatie (morfine) is verplicht.");
   }
   if (!hasText(state.morfine.diagnosis)) {
     errors.push("Diagnose/ziektebeeld (morfine) is verplicht.");

@@ -12,6 +12,8 @@ const reasonIcon = "/icons/healthicons/inpatient-24px.svg";
 const medicinesIcon = "/icons/healthicons/infusion-pump-24px.svg";
 const notesIcon = "/icons/healthicons/clinical-f-24px.svg";
 
+const diagnosisIndicationInputPlaceholder = "Typ of kies een suggestie";
+
 interface MidazolamTabProps {
   data: MidazolamFormData;
   onChange: (data: MidazolamFormData) => void;
@@ -223,6 +225,7 @@ export function MidazolamTab({
                 onBlur={() => setTimeout(() => setDiagnosisMenuOpen(false), 120)}
               >
                 <input
+                  placeholder={diagnosisIndicationInputPlaceholder}
                   value={data.diagnosis}
                   onFocus={() => setDiagnosisMenuOpen(true)}
                   onChange={(event) => {
@@ -262,6 +265,7 @@ export function MidazolamTab({
                 onBlur={() => setTimeout(() => setIndicationMenuOpen(false), 120)}
               >
                 <input
+                  placeholder={diagnosisIndicationInputPlaceholder}
                   value={data.indication}
                   onFocus={() => setIndicationMenuOpen(true)}
                   onChange={(event) => {

@@ -291,6 +291,33 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
     <section className="card">
       <h2>Gegevens cliënt en zorgverleners, instellingen</h2>
       <p className="small-muted">{uiDisclaimer}</p>
+      <p className="small-muted">
+        <span className="required-mark" aria-hidden="true">
+          *
+        </span>{" "}
+        betekent dat het veld verplicht is.
+      </p>
+      <p className="small-muted general-save-hint">
+        Gebruik{" "}
+        <span className="general-save-hint-floppy" aria-hidden="true" title="opslaan in browser">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+        </span>{" "}
+        om op te slaan voor een volgende keer.
+      </p>
 
       <div className="general-group">
         <SectionHeader iconSrc={calendarIcon} title="Datum verzoek" />
@@ -324,7 +351,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
           }
         />
         {!data.usePatientSticker ? <div className="grid-2">
-          <FormField label={requiredLabel("Naam")}>
+          <FormField label="Naam">
             <input
               value={data.patient.fullName}
               onChange={(event) =>
@@ -332,7 +359,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               }
             />
           </FormField>
-          <FormField label={requiredLabel("Geboortedatum")}>
+          <FormField label="Geboortedatum">
             <input
               type="date"
               lang="nl-NL"
@@ -360,7 +387,7 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
               <option value="">-</option>
               <option value="vrouw">vrouw</option>
               <option value="man">man</option>
-              <option value="onzijdig">onzijdig</option>
+              <option value="anders">anders</option>
             </select>
           </FormField>
           <FormField label="Adres">
@@ -498,13 +525,13 @@ export function GeneralSection({ data, onChange }: GeneralSectionProps) {
       <div className="general-group general-group--allow-overflow">
         <SectionHeader
           iconSrc={hospitalIcon}
-          title="Uitvoerende zorginstelling"
+          title="Uitvoerende (thuis)zorgorganisatie"
           action={
             <button
               type="button"
               className="header-action-button"
-              title="zorginstelling opslaan in browser"
-              aria-label="zorginstelling opslaan in browser"
+              title="uitvoerende (thuis)zorgorganisatie opslaan in browser"
+              aria-label="uitvoerende (thuis)zorgorganisatie opslaan in browser"
               onClick={saveOrganizationToBrowser}
             >
               {organizationIsSaved ? (

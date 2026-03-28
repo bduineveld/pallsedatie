@@ -280,6 +280,24 @@ body {
   font-weight: 700;
 }
 
+.general-save-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.general-save-hint-floppy {
+  display: inline-flex;
+  align-items: center;
+  color: var(--brand-navy);
+  flex-shrink: 0;
+}
+
+.general-save-hint-floppy svg {
+  display: block;
+}
+
 .general-group {
   border: 1px solid var(--brand-navy-border);
   border-radius: 8px;
@@ -495,6 +513,12 @@ textarea {
   padding: 0.5rem;
   border: 1px solid var(--brand-navy-border);
   border-radius: 6px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #b8c2d4;
+  opacity: 1;
 }
 
 input:focus,

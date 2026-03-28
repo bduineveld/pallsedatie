@@ -726,7 +726,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
 
   const rightInnerX = rightPanelX + 8;
   const rightInnerEndX = rightPanelX + rightPanelWidth - 8;
-  page.drawText("Uitvoerende instelling", {
+  page.drawText("Uitvoerende (thuis)zorgorganisatie", {
     x: rightInnerX,
     y: uitvoerendeY + uitvoerendeHeight - panelHeaderHeight + 5,
     size: 10,
@@ -845,7 +845,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
       indicatieDiagnoseY - indicatieContentDownShift
     );
     drawWideHighlightedField(
-      "Indicatie / refractair symptoom",
+      "Indicatie",
       safe(state.morfine.indication),
       indicatieSymptoomY - indicatieContentDownShift
     );
