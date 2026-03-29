@@ -1,0 +1,14 @@
+---
+description: Na code-aanpassingen altijd productie-build draaien
+alwaysApply: true
+---
+
+# Build na aanpassingen
+
+In deze repository (`pallsedatie-static-app`):
+
+- Na **elke substantiële code-aanpassing** (TypeScript, React, CSS, config die de build raakt): voer vanuit de projectroot **`npm run build`** uit.
+- Als de build faalt: los de fouten op en **build opnieuw** tot het slaagt.
+- Bij twijfel of een wijziging klein is: toch bouwen; het is snel en voorkomt kapotte deploys.
+
+Gebruik **niet** alleen de gebruiker instrueren om te bouwen; voer het commando zelf uit in de terminal.

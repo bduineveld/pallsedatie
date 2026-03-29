@@ -26,6 +26,7 @@ function calculateMaxDays(
   return totalMg / dailyUsage;
 }
 
+/** Midazolam e.d.: maxExtra = maximaal aantal extra PRN-doses per 24 uur. */
 function calculateMaxDaysIntermittent(
   scheduledDoseMg: number,
   intervalHours: number,
@@ -52,6 +53,37 @@ function calculateMaxDaysIntermittent(
   return totalMg / dailyUsage;
 }
 
+/** Morfine intermitterend: maxDosesPer24h = maximaal totaal aantal doses (gepland + extra) per 24 uur. */
+function calculateMaxDaysIntermittentMorfine(
+  scheduledDoseMg: number,
+  intervalHours: number,
+  bolusMg: number,
+  lockoutHours: number,
+  maxDosesPer24h: number,
+  concentrationMgPerMl: number
+): number {
+  const maxMl = 100;
+  const totalMg = maxMl * concentrationMgPerMl;
+  const scheduledPerDay =
+    intervalHours > 0 ? (24 / intervalHours) * scheduledDoseMg : 0;
+  const scheduledInjectionsPerDay = intervalHours > 0 ? 24 / intervalHours : 0;
+  let bolusEventsPerDay = 0;
+  if (lockoutHours > 0 && bolusMg > 0) {
+    const byLockout = 24 / lockoutHours;
+    const maxExtraSlots =
+      maxDosesPer24h > 0
+        ? Math.max(0, maxDosesPer24h - scheduledInjectionsPerDay)
+        : Number.POSITIVE_INFINITY;
+    bolusEventsPerDay = Math.min(byLockout, maxExtraSlots);
+  }
+  const bolusPerDay = bolusMg * bolusEventsPerDay;
+  const dailyUsage = scheduledPerDay + bolusPerDay;
+  if (dailyUsage <= 0) {
+    return 0;
+  }
+  return totalMg / dailyUsage;
+}
+
 function formatDaysForAdvice(days: number): string {
   if (days < 10) {
     return days.toFixed(1);
@@ -66,12 +98,13 @@ function buildMorfineAdvice(state: AppFormState): AdviceBlock {
     const schedH = toNumber(state.morfine.scheduledInjectionIntervalHours);
     const bolusMg = toNumber(state.morfine.bolusMg);
     const lockout = toNumber(state.morfine.lockoutHours);
-    const maxDays = calculateMaxDaysIntermittent(
+    const maxDoses = toNumber(state.morfine.maxDosesPer24h);
+    const maxDays = calculateMaxDaysIntermittentMorfine(
       schedD,
       schedH,
       bolusMg,
       lockout,
-      maxExtra,
+      maxDoses,
       state.morfine.concentrationMgPerMl
     );
     const formattedDays = formatDaysForAdvice(maxDays);
@@ -81,8 +114,8 @@ function buildMorfineAdvice(state: AppFormState): AdviceBlock {
         `Morfine ${state.morfine.concentrationMgPerMl} mg/ml (intermitterend).`,
         productText.morfine,
         `Geplande injectie: ${formatMedicalNumber(schedD)} mg elke ${formatMedicalNumber(schedH)} uur.`,
-        `Extra dosis: ${formatMedicalNumber(bolusMg)} mg; minimaal ${formatMedicalNumber(lockout)} uur tussen extra doses.`,
-        `Max. ${formatMedicalNumber(maxExtra)} extra dose(s) per 24 uur.`,
+        `Extra dosis: ${formatMedicalNumber(bolusMg)} mg; minimaal ${formatMedicalNumber(lockout)} uur tussen doses.`,
+        `Max. ${formatMedicalNumber(maxDoses)} dose(s) per 24 uur (totaal, inclusief geplande injecties).`,
         `Ruwe schatting: minimaal ${formattedDays} dagen uit 100 ml (afhankelijk van gebruik).`
       ]
     };

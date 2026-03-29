@@ -24,7 +24,15 @@ describe("default dates", () => {
     expect(state.morfine.maxExtraDosesPer24h).toBe("");
     expect(state.midazolam.scheduledInjectionDoseMg).toBe("");
     expect(state.morfine.opioidDosingApplied).toBe(false);
+    expect(state.morfine.intermittentOpioidDosingApplied).toBe(false);
     expect(state.morfine.startBolusEqualsBolus).toBe(true);
+    expect(state.morfine.maxDosesPer24h).toBe("");
+    expect(state.morfine.extraDosisGelijkScheduled).toBe(true);
+  });
+
+  it("defaults morfine lockout to 4 uur", () => {
+    const state = createDefaultState("2026-03-10");
+    expect(state.morfine.lockoutHours).toBe("4");
   });
 });
 

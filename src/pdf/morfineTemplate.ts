@@ -965,7 +965,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
       true
     );
     drawFieldMgWithOptionalMlSuffix(
-      "Extra dosis",
+      state.morfine.extraDosisGelijkScheduled ? "Extra dosis (= gepland)" : "Extra dosis",
       parseMgDoseWithOptionalMl(
         state.morfine.bolusMg,
         state.morfine.concentrationMgPerMl,
@@ -978,7 +978,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
       true
     );
     drawField(
-      "Interval extra",
+      "Minimaal interval tussen doses",
       withUnit(state.morfine.lockoutHours, "uur"),
       leftX,
       medFieldY3,
@@ -987,8 +987,8 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
       true
     );
     drawField(
-      "Max. extra doses/24u",
-      safe(state.morfine.maxExtraDosesPer24h),
+      "Max. doses/24u",
+      safe(state.morfine.maxDosesPer24h),
       medMidX,
       medFieldY3,
       medLabelWidth,

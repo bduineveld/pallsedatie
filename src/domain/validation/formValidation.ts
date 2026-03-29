@@ -30,26 +30,36 @@ export function validateMorfineForm(state: AppFormState): ValidationResult {
   if (state.morfine.opioidInputMode === "existing" && state.morfine.existingOpioids.length === 0) {
     errors.push("Voeg minimaal één bestaand opioïd toe.");
   }
-  if (!hasText(state.morfine.maxExtraDosesPer24h)) {
-    errors.push("Max. extra doses per 24 uur (morfine) ontbreekt.");
-  }
   if (state.morfine.administrationMode === "continuous_infusion") {
     if (!hasText(state.morfine.continueDoseMgPer24h)) {
       errors.push("Continue dosering morfine ontbreekt.");
     }
-  }
-  if (state.morfine.administrationMode === "intermittent_injection") {
-    if (!hasText(state.morfine.scheduledInjectionDoseMg)) {
-      errors.push("Dosis per geplande injectie (morfine) ontbreekt.");
-    }
-    if (!hasText(state.morfine.scheduledInjectionIntervalHours)) {
-      errors.push("Interval geplande injecties (morfine) ontbreekt.");
-    }
     if (!hasText(state.morfine.bolusMg)) {
-      errors.push("Extra dosis (morfine) ontbreekt.");
+      errors.push("Bolusdosis (morfine) ontbreekt.");
     }
     if (!hasText(state.morfine.lockoutHours)) {
-      errors.push("Interval tussen extra doses (morfine) ontbreekt.");
+      errors.push("Lockout (morfine) ontbreekt.");
+    }
+  }
+  if (state.morfine.administrationMode === "intermittent_injection") {
+    if (!state.morfine.intermittentOpioidDosingApplied) {
+      errors.push("Neem eerst de richtlijn of omrekening over voor intermitterende injecties (morfine).");
+    } else {
+      if (!hasText(state.morfine.scheduledInjectionDoseMg)) {
+        errors.push("Dosis per geplande injectie (morfine) ontbreekt.");
+      }
+      if (!hasText(state.morfine.scheduledInjectionIntervalHours)) {
+        errors.push("Interval geplande injecties (morfine) ontbreekt.");
+      }
+      if (!state.morfine.extraDosisGelijkScheduled && !hasText(state.morfine.bolusMg)) {
+        errors.push("Extra dosis (morfine) ontbreekt.");
+      }
+      if (!hasText(state.morfine.lockoutHours)) {
+        errors.push("Minimaal interval tussen doses (morfine) ontbreekt.");
+      }
+      if (!hasText(state.morfine.maxDosesPer24h)) {
+        errors.push("Max. doses per 24 uur (morfine) ontbreekt.");
+      }
     }
   }
   return { valid: errors.length === 0, errors };

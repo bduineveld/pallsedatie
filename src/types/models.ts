@@ -67,6 +67,10 @@ export interface MorfineFormData {
   administrationMode: "" | "continuous_infusion" | "intermittent_injection";
   /** Alleen UI: na klik op richtlijn/praktisch/75%/100% worden pompvelden getoond (continue infusie). */
   opioidDosingApplied: boolean;
+  /** Alleen UI: idem voor intermitterende injecties. */
+  intermittentOpioidDosingApplied: boolean;
+  /** Extra PRN-dosis gelijk aan geplande injectiedosis. */
+  extraDosisGelijkScheduled: boolean;
   /** Alleen UI: oplaaddosis = bolus; zo niet, apart veld tussen continue dosis en bolus. */
   startBolusEqualsBolus: boolean;
   opioidInputMode: "" | "naive" | "existing";
@@ -78,7 +82,10 @@ export interface MorfineFormData {
   continueDoseMgPer24h: string;
   scheduledInjectionDoseMg: string;
   scheduledInjectionIntervalHours: string;
+  /** Alleen continue pomp: max. extra PRN-doses per 24 uur. */
   maxExtraDosesPer24h: string;
+  /** Intermitterend: maximaal aantal doses (gepland + extra) per 24 uur. */
+  maxDosesPer24h: string;
   startBolusMg: string;
   bolusMg: string;
   lockoutHours: string;

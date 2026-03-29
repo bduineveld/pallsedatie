@@ -9,9 +9,15 @@ import { opioidDisplayNames, opioidToMorphineScIvTable } from "../data/opioidRot
 import { computeMorfineSuggestionBundle } from "../domain/dosageSuggestions/morfineSuggestions";
 import { formatMedicalNumber } from "../domain/format/numberFormat";
 import { ExistingOpioidEntry, MorfineFormData, OpioidKind } from "../types/models";
+import { AUTOCOMPLETE_ANDERS_LABEL, andersMouseDown } from "./autocompleteAnders";
 import { FormField } from "./FormField";
 import { GuidelinePanel } from "./GuidelinePanel";
 import { MorfineBolusDoseCombobox } from "./MorfineBolusDoseCombobox";
+import { MorfineIntermittentMinIntervalCombobox } from "./MorfineIntermittentMinIntervalCombobox";
+import { MorfineScheduledInjectionIntervalCombobox } from "./MorfineScheduledInjectionIntervalCombobox";
+import { MorfineLockoutCombobox } from "./MorfineLockoutCombobox";
+import { MorfineMaxDosesPer24Combobox } from "./MorfineMaxDosesPer24Combobox";
+import { MorfineMaxExtraDosesCombobox } from "./MorfineMaxExtraDosesCombobox";
 import { WarningBanner } from "./WarningBanner";
 
 const reasonIcon = "/icons/healthicons/inpatient-24px.svg";
@@ -44,6 +50,13 @@ const opioidOptions: { value: OpioidKind; label: string }[] = [
 const methadoneRatioOptions: ExistingOpioidEntry["methadoneRatioChoice"][] = [5, 6, 7, 8, 9, 10];
 
 const morfineIndicationOptions = ["pijn", "dyspnoe"];
+
+/** Richtlijn intermitterende morfine-injecties (fixed interval 4 u → 6 injecties/24 u). */
+const INTERMITTENT_RICHTLIJN_INTERVAL_H = 4;
+const INTERMITTENT_RICHTLIJN_LOCKOUT_H = 2;
+const INTERMITTENT_RICHTLIJN_MAX_DOSES = "12";
+const NAIVE_INTERMITTENT_RICHTLIJN_DOSE_MG = 2.5;
+const NAIVE_INTERMITTENT_PRAKTISCH_DOSE_MG = 5;
 
 const palliativeDiagnosisOptions = [
   "gemetastaseerd longkanker",
@@ -222,7 +235,8 @@ export function MorfineTab({
   const isIntermittentInjection = data.administrationMode === "intermittent_injection";
   const showContinuousPumpFields =
     isContinuousInfusion && Boolean(data.opioidInputMode) && data.opioidDosingApplied;
-  const showIntermittentFields = isIntermittentInjection && Boolean(data.opioidInputMode);
+  const showIntermittentMedicationFields =
+    isIntermittentInjection && Boolean(data.opioidInputMode) && data.intermittentOpioidDosingApplied;
   const minPumpMlPerHour = 0.1;
   const minContinueDoseAtCurrentConcentration = minPumpMlPerHour * 24 * data.concentrationMgPerMl;
   const parsedContinueDose = Number.parseFloat(data.continueDoseMgPer24h.replace(",", "."));
@@ -289,6 +303,50 @@ export function MorfineTab({
       bolusMg: "",
       startBolusMg: "",
       lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
+    });
+  };
+
+  const applyIntermittentFromAdviceMgPer24h = (mgPer24h: number) => {
+    const perInjection = mgPer24h / (24 / INTERMITTENT_RICHTLIJN_INTERVAL_H);
+    const doseStr = formatMedicalNumber(perInjection);
+    onChange({
+      ...data,
+      intermittentOpioidDosingApplied: true,
+      scheduledInjectionDoseMg: doseStr,
+      scheduledInjectionIntervalHours: String(INTERMITTENT_RICHTLIJN_INTERVAL_H),
+      lockoutHours: formatMedicalNumber(INTERMITTENT_RICHTLIJN_LOCKOUT_H),
+      maxDosesPer24h: INTERMITTENT_RICHTLIJN_MAX_DOSES,
+      extraDosisGelijkScheduled: true,
+      bolusMg: doseStr,
+      continuationAdvice: buildContinuationAdviceFromExistingOpioids()
+    });
+  };
+
+  const applyIntermittentNaiveRichtlijn = () => {
+    const doseStr = formatMedicalNumber(NAIVE_INTERMITTENT_RICHTLIJN_DOSE_MG);
+    onChange({
+      ...data,
+      intermittentOpioidDosingApplied: true,
+      scheduledInjectionDoseMg: doseStr,
+      scheduledInjectionIntervalHours: String(INTERMITTENT_RICHTLIJN_INTERVAL_H),
+      lockoutHours: formatMedicalNumber(INTERMITTENT_RICHTLIJN_LOCKOUT_H),
+      maxDosesPer24h: INTERMITTENT_RICHTLIJN_MAX_DOSES,
+      extraDosisGelijkScheduled: true,
+      bolusMg: doseStr
+    });
+  };
+
+  const applyIntermittentNaivePraktisch = () => {
+    const doseStr = formatMedicalNumber(NAIVE_INTERMITTENT_PRAKTISCH_DOSE_MG);
+    onChange({
+      ...data,
+      intermittentOpioidDosingApplied: true,
+      scheduledInjectionDoseMg: doseStr,
+      scheduledInjectionIntervalHours: String(INTERMITTENT_RICHTLIJN_INTERVAL_H),
+      lockoutHours: formatMedicalNumber(INTERMITTENT_RICHTLIJN_LOCKOUT_H),
+      maxDosesPer24h: INTERMITTENT_RICHTLIJN_MAX_DOSES,
+      extraDosisGelijkScheduled: true,
+      bolusMg: doseStr
     });
   };
 
@@ -373,14 +431,14 @@ export function MorfineTab({
                 }}
                 onBlur={onDiagnosisBlur}
               />
-              {diagnosisMenuOpen && filteredDiagnoses.length > 0 ? (
+              {diagnosisMenuOpen ? (
                 <div className="autocomplete-menu">
                   {filteredDiagnoses.map((option) => (
                     <button
                       key={option}
                       type="button"
                       className="autocomplete-item"
-                      onMouseDown={(event) => event.preventDefault()}
+                      onMouseDown={andersMouseDown}
                       onClick={() => {
                         onDiagnosisUserChange?.();
                         onChange({
@@ -393,6 +451,16 @@ export function MorfineTab({
                       {option}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    className="autocomplete-item autocomplete-item--anders"
+                    onMouseDown={andersMouseDown}
+                    onClick={() => {
+                      setDiagnosisMenuOpen(false);
+                    }}
+                  >
+                    {AUTOCOMPLETE_ANDERS_LABEL}
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -411,14 +479,14 @@ export function MorfineTab({
                   setIndicationMenuOpen(true);
                 }}
               />
-              {indicationMenuOpen && filteredIndications.length > 0 ? (
+              {indicationMenuOpen ? (
                 <div className="autocomplete-menu">
                   {filteredIndications.map((option) => (
                     <button
                       key={option}
                       type="button"
                       className="autocomplete-item"
-                      onMouseDown={(event) => event.preventDefault()}
+                      onMouseDown={andersMouseDown}
                       onClick={() => {
                         onChange({
                           ...data,
@@ -430,6 +498,16 @@ export function MorfineTab({
                       {option}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    className="autocomplete-item autocomplete-item--anders"
+                    onMouseDown={andersMouseDown}
+                    onClick={() => {
+                      setIndicationMenuOpen(false);
+                    }}
+                  >
+                    {AUTOCOMPLETE_ANDERS_LABEL}
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -449,7 +527,12 @@ export function MorfineTab({
                 name="morfine-administration-mode"
                 checked={data.administrationMode === "intermittent_injection"}
                 onChange={() =>
-                  onChange({ ...data, administrationMode: "intermittent_injection", opioidDosingApplied: false })
+                  onChange({
+                    ...data,
+                    administrationMode: "intermittent_injection",
+                    opioidDosingApplied: false,
+                    intermittentOpioidDosingApplied: false
+                  })
                 }
               />
               Intermitterende injecties
@@ -460,7 +543,12 @@ export function MorfineTab({
                 name="morfine-administration-mode"
                 checked={data.administrationMode === "continuous_infusion"}
                 onChange={() =>
-                  onChange({ ...data, administrationMode: "continuous_infusion", opioidDosingApplied: false })
+                  onChange({
+                    ...data,
+                    administrationMode: "continuous_infusion",
+                    opioidDosingApplied: false,
+                    intermittentOpioidDosingApplied: false
+                  })
                 }
               />
               Continue infusie (pomp)
@@ -476,7 +564,14 @@ export function MorfineTab({
                 type="radio"
                 name="opioid-input-mode"
                 checked={data.opioidInputMode === "naive"}
-                onChange={() => onChange({ ...data, opioidInputMode: "naive", opioidDosingApplied: false })}
+                onChange={() =>
+                  onChange({
+                    ...data,
+                    opioidInputMode: "naive",
+                    opioidDosingApplied: false,
+                    intermittentOpioidDosingApplied: false
+                  })
+                }
               />
               Opioïd-naïef
             </label>
@@ -485,7 +580,14 @@ export function MorfineTab({
                 type="radio"
                 name="opioid-input-mode"
                 checked={data.opioidInputMode === "existing"}
-                onChange={() => onChange({ ...data, opioidInputMode: "existing", opioidDosingApplied: false })}
+                onChange={() =>
+                  onChange({
+                    ...data,
+                    opioidInputMode: "existing",
+                    opioidDosingApplied: false,
+                    intermittentOpioidDosingApplied: false
+                  })
+                }
               />
               Reken om vanuit bestaande dosering
             </label>
@@ -640,7 +742,9 @@ export function MorfineTab({
             </>
           ) : null}
 
-          {isContinuousInfusion && bundle.warnings.length > 0 ? (
+          {data.opioidInputMode &&
+          bundle.warnings.length > 0 &&
+          (isContinuousInfusion || isIntermittentInjection) ? (
             <WarningBanner warnings={bundle.warnings} />
           ) : null}
 
@@ -668,7 +772,7 @@ export function MorfineTab({
                       .
                     </li>
                   </ul>
-                  <p className="small-muted">Bolus: aanbevolen 1/6–1/10 van 24-uursdosering.</p>
+                  <p className="small-muted">Bolus: aanbevolen 1/6 tot 1/10 van 24-uursdosering.</p>
                 </>
               ) : (
                 <>
@@ -738,10 +842,118 @@ export function MorfineTab({
               ) : (
                 <div className="segment">
                   <button type="button" onClick={applyAdvice}>
-                    Richtlijn overnemen
+                    Richtlijn overnemen ({formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)}mg/24u)
                   </button>
                   <button type="button" onClick={applyNaivePracticalAdvice}>
-                    Praktisch overnemen
+                    Praktisch overnemen ({formatMedicalNumber(naivePracticalContinueDoseMgPer24h)}mg/24u)
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {data.opioidInputMode && isIntermittentInjection ? (
+            <div className={`conversion-summary ${morfineRiskStripeClass}`}>
+              {data.opioidInputMode === "naive" ? (
+                <>
+                  <p>
+                    {data.ageOver70 && data.egfrUnder30
+                      ? "Opioïd-naïef en >70 jaar met eGFR <30."
+                      : "Opioïd-naïef."}
+                  </p>
+                  <ul>
+                    <li>
+                      Richtlijn: Dosis per injectie {formatMedicalNumber(NAIVE_INTERMITTENT_RICHTLIJN_DOSE_MG)} mg, elke{" "}
+                      {INTERMITTENT_RICHTLIJN_INTERVAL_H} uur.
+                    </li>
+                    <li>
+                      Minimaal interval tussen doses {INTERMITTENT_RICHTLIJN_LOCKOUT_H} uur (standaard); max.{" "}
+                      {INTERMITTENT_RICHTLIJN_MAX_DOSES} doses per 24 uur (standaard).
+                    </li>
+                    <li>
+                      Praktisch: {formatMedicalNumber(NAIVE_INTERMITTENT_PRAKTISCH_DOSE_MG)} mg per injectie (elke{" "}
+                      {INTERMITTENT_RICHTLIJN_INTERVAL_H} uur).
+                    </li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  <div className="conversion-table-wrapper">
+                    <table className="conversion-table">
+                      <thead>
+                        <tr>
+                          <th>Huidig opioïd</th>
+                          <th>Dosering</th>
+                          <th>Morfine s.c.</th>
+                          <th>Dosis per injectie (4 u)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {convertedItems.map((item) => (
+                          <tr key={`int-eq-${item.opioid}-${item.sourceDose}`}>
+                            <td>{opioidDisplayNames[item.opioid]}</td>
+                            <td>
+                              {formatMedicalNumber(item.sourceDose)} {item.sourceUnit}
+                            </td>
+                            <td>{formatMedicalNumber(item.morphineScIvMgPer24h)} mg/24u</td>
+                            <td />
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td>Totaal</td>
+                          <td />
+                          <td>{formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h)} mg/24u</td>
+                          <td>{formatMedicalNumber(bundle.conversion.advice100PercentMgPer24h / 6)} mg</td>
+                        </tr>
+                        <tr>
+                          <td>75% (richtlijn)</td>
+                          <td />
+                          <td>{formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h)} mg/24u</td>
+                          <td>{formatMedicalNumber(bundle.conversion.advice75PercentMgPer24h / 6)} mg</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  {bundle.conversion.items
+                    .filter((item) => item.usedInterpolation && item.interpolationNote)
+                    .map((item) => (
+                      <p key={`int-${item.opioid + item.sourceDose}`} className="small-muted">
+                        Interpolatie: {item.interpolationNote}
+                      </p>
+                    ))}
+                  <p className="small-muted">
+                    Dosis per injectie (elke 4 u): morfine s.c. mg/24u gedeeld door 6.
+                  </p>
+                </>
+              )}
+              {data.opioidInputMode === "existing" ? (
+                <div className="segment">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      applyIntermittentFromAdviceMgPer24h(bundle.conversion.advice75PercentMgPer24h)
+                    }
+                  >
+                    75% overnemen (richtlijn)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      applyIntermittentFromAdviceMgPer24h(bundle.conversion.advice100PercentMgPer24h)
+                    }
+                  >
+                    100% overnemen
+                  </button>
+                </div>
+              ) : (
+                <div className="segment">
+                  <button type="button" onClick={applyIntermittentNaiveRichtlijn}>
+                    Richtlijn overnemen ({formatMedicalNumber(NAIVE_INTERMITTENT_RICHTLIJN_DOSE_MG)} mg per injectie)
+                  </button>
+                  <button type="button" onClick={applyIntermittentNaivePraktisch}>
+                    Praktisch overnemen ({formatMedicalNumber(NAIVE_INTERMITTENT_PRAKTISCH_DOSE_MG)} mg per injectie)
                   </button>
                 </div>
               )}
@@ -794,13 +1006,19 @@ export function MorfineTab({
               </FormField>
             </div>
             <div className="morfine-pomp-cell--lockout">
-              <FormField label="Lockout (uur)">
-                <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
+              <FormField label={requiredLabel("Lockout (uur)")}>
+                <MorfineLockoutCombobox
+                  value={data.lockoutHours}
+                  onChange={(next) => onChange({ ...data, lockoutHours: next })}
+                />
               </FormField>
             </div>
             <div className="morfine-pomp-cell--max">
-              <FormField label={requiredLabel("Max. extra doses / 24 uur")}>
-                <input value={data.maxExtraDosesPer24h} onChange={(event) => onChange({ ...data, maxExtraDosesPer24h: event.target.value })} />
+              <FormField label="Max. extra doses / 24 uur">
+                <MorfineMaxExtraDosesCombobox
+                  value={data.maxExtraDosesPer24h}
+                  onChange={(next) => onChange({ ...data, maxExtraDosesPer24h: next })}
+                />
               </FormField>
             </div>
             <div className="morfine-pomp-cell--oplaad-row">
@@ -868,7 +1086,7 @@ export function MorfineTab({
             </>
           ) : null}
 
-          {showIntermittentFields ? (
+          {showIntermittentMedicationFields ? (
             <>
               <div className="grid-2">
                 <FormField label="Middel en concentratie">
@@ -898,36 +1116,76 @@ export function MorfineTab({
                 </FormField>
               </div>
               <h3>Intermitterende toediening</h3>
-              <div className="grid-2">
+              <div className="morfine-intermittent-extra-row">
                 <FormField label={requiredLabel("Dosis per injectie (mg)")}>
                   <input
                     value={data.scheduledInjectionDoseMg}
-                    onChange={(event) => onChange({ ...data, scheduledInjectionDoseMg: event.target.value })}
+                    onChange={(event) => {
+                      const v = event.target.value;
+                      onChange({
+                        ...data,
+                        scheduledInjectionDoseMg: v,
+                        ...(data.extraDosisGelijkScheduled ? { bolusMg: v } : {})
+                      });
+                    }}
                   />
                 </FormField>
                 <FormField label={requiredLabel("Elke (uur)")}>
-                  <input
+                  <MorfineScheduledInjectionIntervalCombobox
                     value={data.scheduledInjectionIntervalHours}
-                    onChange={(event) => onChange({ ...data, scheduledInjectionIntervalHours: event.target.value })}
+                    onChange={(next) => onChange({ ...data, scheduledInjectionIntervalHours: next })}
                   />
                 </FormField>
-                <FormField label={requiredLabel("Extra dosis (mg)")}>
-                  <input value={data.bolusMg} onChange={(event) => onChange({ ...data, bolusMg: event.target.value })} />
-                </FormField>
-                <FormField label={requiredLabel("Interval tussen extra doses (uur)")}>
-                  <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
-                </FormField>
-                <FormField label={requiredLabel("Max. extra doses / 24 uur")}>
+                <div className="morfine-intermittent-grid-spacer" aria-hidden="true">
+                  <span className="form-label">&nbsp;</span>
+                  <div className="morfine-intermittent-grid-spacer-fill" />
+                </div>
+              </div>
+              <div className="morfine-intermittent-extra-row">
+                <div className="form-field">
+                  <div className="form-label morfine-intermittent-extra-dosis-label">
+                    <span>
+                      Zo nodig extra dosis (mg) <span className="required-mark">*</span>
+                    </span>
+                    <label className="checkbox-line morfine-intermittent-gelijk-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={data.extraDosisGelijkScheduled}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          onChange({
+                            ...data,
+                            extraDosisGelijkScheduled: checked,
+                            bolusMg: checked ? data.scheduledInjectionDoseMg : data.bolusMg
+                          });
+                        }}
+                      />
+                      gelijk
+                    </label>
+                  </div>
                   <input
-                    value={data.maxExtraDosesPer24h}
-                    onChange={(event) => onChange({ ...data, maxExtraDosesPer24h: event.target.value })}
+                    value={data.bolusMg}
+                    disabled={data.extraDosisGelijkScheduled}
+                    onChange={(event) => onChange({ ...data, bolusMg: event.target.value })}
+                  />
+                </div>
+                <FormField label={requiredLabel("Minimale tijd tussen extra doses (uur)")}>
+                  <MorfineIntermittentMinIntervalCombobox
+                    value={data.lockoutHours}
+                    onChange={(next) => onChange({ ...data, lockoutHours: next })}
+                  />
+                </FormField>
+                <FormField label={requiredLabel("Totaal max. doses / 24 uur")}>
+                  <MorfineMaxDosesPer24Combobox
+                    value={data.maxDosesPer24h}
+                    onChange={(next) => onChange({ ...data, maxDosesPer24h: next })}
                   />
                 </FormField>
               </div>
             </>
           ) : null}
 
-          {(showContinuousPumpFields || showIntermittentFields) ? (
+          {(showContinuousPumpFields || showIntermittentMedicationFields) ? (
           <div className="stack">
             <label className="checkbox-line">
               <input

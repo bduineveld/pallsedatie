@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { AUTOCOMPLETE_ANDERS_LABEL, andersMouseDown } from "./autocompleteAnders";
 import {
   buildMorfineBolusFractionOptions,
   formatMorfineBolusMgString,
@@ -125,7 +126,7 @@ export function MorfineBolusDoseCombobox({
           }
         }}
       />
-      {menuOpen && !disabled && filteredOptions.length > 0 ? (
+      {menuOpen && !disabled ? (
         <div className="autocomplete-menu autocomplete-menu--compact morfine-bolus-autocomplete-menu" role="listbox">
           {filteredOptions.map((option) => {
             const isSelected = selectedDenominator === option.denominator;
@@ -140,7 +141,7 @@ export function MorfineBolusDoseCombobox({
                 className={`autocomplete-item${isSelected ? " autocomplete-item--selected" : ""}${
                   option.isDefault ? " morfine-bolus-option--most-recommended" : ""
                 }${option.recommended ? "" : " morfine-bolus-option--not-recommended"}`}
-                onMouseDown={(event) => event.preventDefault()}
+                onMouseDown={andersMouseDown}
                 onClick={() => {
                   onChange(formatMorfineBolusMgString(option.bolusMg));
                   setMenuOpen(false);
@@ -150,6 +151,17 @@ export function MorfineBolusDoseCombobox({
               </button>
             );
           })}
+          <button
+            type="button"
+            role="option"
+            className="autocomplete-item autocomplete-item--anders"
+            onMouseDown={andersMouseDown}
+            onClick={() => {
+              setMenuOpen(false);
+            }}
+          >
+            {AUTOCOMPLETE_ANDERS_LABEL}
+          </button>
         </div>
       ) : null}
     </div>
