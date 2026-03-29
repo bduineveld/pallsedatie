@@ -5,7 +5,7 @@ import {
 } from "../../data/morfineDefaults";
 import { buildMorfineWarnings, suggestMorfineSettings } from "../guidelineLogic/morfineLogic";
 import { MorfineFormData } from "../../types/models";
-import { MorfineConversionSummary } from "../../types/domain";
+import { MorfineConversionSummary, MorfineWarningItem } from "../../types/domain";
 
 export function computeMorfineSuggestionBundle(form: MorfineFormData) {
   if (form.opioidInputMode === "naive") {
@@ -22,7 +22,7 @@ export function computeMorfineSuggestionBundle(form: MorfineFormData) {
       warnings: []
     };
 
-    const warnings = buildMorfineWarnings({
+    const warnings: MorfineWarningItem[] = buildMorfineWarnings({
       advice75PercentMgPer24h: defaults.continueDoseMgPer24h,
       ageOver70: form.ageOver70,
       egfrUnder30: form.egfrUnder30
@@ -32,8 +32,6 @@ export function computeMorfineSuggestionBundle(form: MorfineFormData) {
       conversion,
       suggestions: {
         continueDoseMgPer24h: defaults.continueDoseMgPer24h,
-        startBolusMg: defaults.startDoseMg,
-        bolusMg: defaults.bolusMg,
         lockoutHours: defaults.lockoutHours,
         explanation:
           "Aanbevolen op basis van opioïd-naïef richtlijnstart. Bij >70 jaar en/of eGFR <30 wordt de lage startdosis gebruikt."
@@ -48,11 +46,14 @@ export function computeMorfineSuggestionBundle(form: MorfineFormData) {
     ageOver70: form.ageOver70,
     egfrUnder30: form.egfrUnder30
   });
-  const warnings = [...conversion.warnings, ...buildMorfineWarnings({
-    advice75PercentMgPer24h: conversion.advice75PercentMgPer24h,
-    ageOver70: form.ageOver70,
-    egfrUnder30: form.egfrUnder30
-  })];
+  const warnings: MorfineWarningItem[] = [
+    ...conversion.warnings.map((text) => ({ kind: "bullet" as const, text })),
+    ...buildMorfineWarnings({
+      advice75PercentMgPer24h: conversion.advice75PercentMgPer24h,
+      ageOver70: form.ageOver70,
+      egfrUnder30: form.egfrUnder30
+    })
+  ];
 
   return { conversion, suggestions, warnings };
 }

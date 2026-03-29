@@ -260,6 +260,89 @@ body {
   gap: 0.75rem;
 }
 
+/* Morfine pomp: rij 1 = continue, bolus, lockout, max; rij 2 = checkbox (+ oplaad) onder bolus */
+.morfine-pomp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: start;
+}
+
+.morfine-pomp-grid .form-field {
+  min-width: 0;
+}
+
+.morfine-pomp-cell--continue {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.morfine-pomp-cell--bolus {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.morfine-pomp-cell--lockout {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.morfine-pomp-cell--max {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.morfine-pomp-cell--oplaad-row {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.morfine-pomp-oplaad-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.morfine-pomp-oplaad-row .checkbox-line {
+  flex: 1 1 12rem;
+  align-items: center;
+  margin: 0;
+}
+
+.morfine-pomp-oplaad-row .form-field {
+  flex: 0 1 11rem;
+  max-width: 100%;
+}
+
+@media (max-width: 56rem) {
+  .morfine-pomp-cell--continue {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .morfine-pomp-cell--bolus {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .morfine-pomp-cell--lockout {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .morfine-pomp-cell--max {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .morfine-pomp-cell--oplaad-row {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
+
 .date-request-grid {
   grid-template-columns: 266.8px;
 }
@@ -443,6 +526,38 @@ body {
   background: #e9e9e9;
 }
 
+.autocomplete-item--selected {
+  background: var(--brand-navy-soft);
+}
+
+.autocomplete-item--selected:hover {
+  background: #dde6f5;
+}
+
+.morfine-bolus-option--most-recommended {
+  font-weight: 700;
+}
+
+.morfine-bolus-option--not-recommended {
+  color: #9ca3af;
+}
+
+.morfine-bolus-option--not-recommended:hover {
+  color: #8b95a5;
+}
+
+.autocomplete-item--selected.morfine-bolus-option--not-recommended {
+  color: #7f8ba7;
+}
+
+.autocomplete-item--selected.morfine-bolus-option--not-recommended:hover {
+  color: #6b7a96;
+}
+
+.morfine-bolus-autocomplete-menu {
+  max-height: 280px;
+}
+
 .general-group-title {
   margin: 0;
   color: #fff;
@@ -580,6 +695,22 @@ textarea {
   padding: 0.75rem;
   border-radius: 6px;
   margin-bottom: 0.75rem;
+}
+
+.warning-banner__list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.warning-banner__richtext {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.warning-banner__richtext a {
+  color: #1e3a5f;
+  text-decoration: underline;
 }
 
 .opioid-row {

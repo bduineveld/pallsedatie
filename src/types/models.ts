@@ -64,6 +64,11 @@ export interface ExistingOpioidEntry {
 }
 
 export interface MorfineFormData {
+  administrationMode: "" | "continuous_infusion" | "intermittent_injection";
+  /** Alleen UI: na klik op richtlijn/praktisch/75%/100% worden pompvelden getoond (continue infusie). */
+  opioidDosingApplied: boolean;
+  /** Alleen UI: oplaaddosis = bolus; zo niet, apart veld tussen continue dosis en bolus. */
+  startBolusEqualsBolus: boolean;
   opioidInputMode: "" | "naive" | "existing";
   diagnosis: string;
   indication: string;
@@ -71,6 +76,9 @@ export interface MorfineFormData {
   existingOpioids: ExistingOpioidEntry[];
   concentrationMgPerMl: 1 | 10 | 20;
   continueDoseMgPer24h: string;
+  scheduledInjectionDoseMg: string;
+  scheduledInjectionIntervalHours: string;
+  maxExtraDosesPer24h: string;
   startBolusMg: string;
   bolusMg: string;
   lockoutHours: string;
@@ -83,6 +91,7 @@ export interface MorfineFormData {
 }
 
 export interface MidazolamFormData {
+  sedationMode: "" | "continuous" | "intermittent";
   diagnosis: string;
   indication: string;
   startDate: string;
@@ -97,6 +106,9 @@ export interface MidazolamFormData {
   concentrationMgPerMl: 1 | 2 | 5;
   loadingDoseMg: string;
   continueDoseMgPer24h: string;
+  scheduledInjectionDoseMg: string;
+  scheduledInjectionIntervalHours: string;
+  maxExtraDosesPer24h: string;
   bolusMg: string;
   lockoutHours: string;
   cadPlacementAllowed: boolean;

@@ -9,6 +9,11 @@ export interface OpioidConversionResult {
   interpolationNote?: string;
 }
 
+/** Waarschuwingen in de morfine-bundel: bullets in één lijst, of een vrije tekstblok (bijv. met link). */
+export type MorfineWarningItem =
+  | { kind: "bullet"; text: string }
+  | { kind: "block"; html: string };
+
 export interface MorfineConversionSummary {
   items: OpioidConversionResult[];
   totalMorphineScIvMgPer24h: number;
@@ -19,8 +24,6 @@ export interface MorfineConversionSummary {
 
 export interface MorfineSuggestions {
   continueDoseMgPer24h: number;
-  startBolusMg: number;
-  bolusMg: number;
   lockoutHours: number;
   explanation: string;
 }

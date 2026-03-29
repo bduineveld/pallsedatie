@@ -1,4 +1,4 @@
-import { MorfineSuggestions } from "../../types/domain";
+import { MorfineSuggestions, MorfineWarningItem } from "../../types/domain";
 
 export interface MorfineGuidelineInput {
   advice75PercentMgPer24h: number;
@@ -6,35 +6,35 @@ export interface MorfineGuidelineInput {
   egfrUnder30: boolean;
 }
 
-export function buildMorfineWarnings(input: MorfineGuidelineInput): string[] {
-  const warnings: string[] = [];
+const PALLIAWEB_NIER_RICHTLIJN =
+  "https://palliaweb.nl/richtlijnen-palliatieve-zorg/richtlijn/pijn-bij-patienten-met-kanker/speciale-patientengroepen/patienten-met-nierfunctiestoornissen";
+
+export function buildMorfineWarnings(input: MorfineGuidelineInput): MorfineWarningItem[] {
+  const warnings: MorfineWarningItem[] = [];
   if (input.ageOver70) {
-    warnings.push("Patiënt >70 jaar: Overweeg lagere oplaaddosis dan advies en strakkere evaluatie.");
+    warnings.push({
+      kind: "bullet",
+      text: "Patiënt >70 jaar: Overweeg lagere oplaaddosis dan advies en strakkere evaluatie."
+    });
   }
   if (input.egfrUnder30) {
-    warnings.push("Verminderde nierfunctie: monitor stapeling en bijwerkingen extra zorgvuldig.");
+    warnings.push({
+      kind: "block",
+      html: `In verband met het risico op stapeling van morfine bij verminderde nierfunctie, heeft fentanyl de voorkeur als sterk opioïd. Indien desondanks wordt gekozen voor morfine in een pomp, wordt geadviseerd een lage continue dosering te hanteren, met voldoende mogelijkheid tot bolustoediening, zodat titratie op geleide van pijn en/of dyspnoe mogelijk is. Zie ook de <a href="${PALLIAWEB_NIER_RICHTLIJN}" target="_blank" rel="noopener noreferrer">richtlijntekst</a>.`
+    });
   }
   return warnings;
 }
 
 export function suggestMorfineSettings(input: MorfineGuidelineInput): MorfineSuggestions {
-  // Richtlijnonderdeel: toon 75% omzettingsadvies als veiliger startpunt bij opioïdrotatie.
+  // Richtlijnonderdeel: 75% omzettingsadvies als veiliger startpunt bij opioïdrotatie (alleen continue dosis).
   const continueDoseMgPer24h = input.advice75PercentMgPer24h;
-
-  // Lokale afleiding voor startwaarden in dit hulpmiddel:
-  // - startbolus = 2x uurdosis
-  // - bolus = 1x uurdosis
-  // Deze regel is transparant en overschrijfbaar in UI.
-  const continueDoseMgPerHour = continueDoseMgPer24h / 24;
-  const startBolusMg = continueDoseMgPerHour * 2;
-  const bolusMg = continueDoseMgPerHour;
+  const lockoutHours = input.ageOver70 || input.egfrUnder30 ? 6 : 4;
 
   return {
     continueDoseMgPer24h,
-    startBolusMg,
-    bolusMg,
-    lockoutHours: 0.33,
+    lockoutHours,
     explanation:
-      "Aanbevolen op basis van 75% morfine-equivalent per 24 uur. Start-/bolusverhouding is lokale afleiding en blijft aanpasbaar."
+      "Aanbevolen op basis van 75% morfine-equivalent per 24 uur. Bolusdosis kiest u afzonderlijk (standaardadvies 1/6 van de 24-uursdosering)."
   };
 }

@@ -11,6 +11,7 @@ import { formatMedicalNumber } from "../domain/format/numberFormat";
 import { ExistingOpioidEntry, MorfineFormData, OpioidKind } from "../types/models";
 import { FormField } from "./FormField";
 import { GuidelinePanel } from "./GuidelinePanel";
+import { MorfineBolusDoseCombobox } from "./MorfineBolusDoseCombobox";
 import { WarningBanner } from "./WarningBanner";
 
 const reasonIcon = "/icons/healthicons/inpatient-24px.svg";
@@ -217,11 +218,17 @@ export function MorfineTab({
       : data.opioidInputMode === "existing" || (data.opioidInputMode === "naive" && hasMorfineRiskFactor)
           ? "morfine-conversion-summary--gold"
           : "";
+  const isContinuousInfusion = data.administrationMode === "continuous_infusion";
+  const isIntermittentInjection = data.administrationMode === "intermittent_injection";
+  const showContinuousPumpFields =
+    isContinuousInfusion && Boolean(data.opioidInputMode) && data.opioidDosingApplied;
+  const showIntermittentFields = isIntermittentInjection && Boolean(data.opioidInputMode);
   const minPumpMlPerHour = 0.1;
   const minContinueDoseAtCurrentConcentration = minPumpMlPerHour * 24 * data.concentrationMgPerMl;
   const parsedContinueDose = Number.parseFloat(data.continueDoseMgPer24h.replace(",", "."));
   const currentMlPerHour = parsedContinueDose / 24 / data.concentrationMgPerMl;
   const continueDoseTooLowForPump =
+    isContinuousInfusion &&
     Number.isFinite(parsedContinueDose) &&
     parsedContinueDose > 0 &&
     Number.isFinite(currentMlPerHour) &&
@@ -233,6 +240,7 @@ export function MorfineTab({
     Number.isFinite(currentPumpStepRaw) &&
     Math.abs(currentPumpStepRaw - currentPumpStepRounded) < 1e-8;
   const continueDoseBetweenPumpSteps =
+    isContinuousInfusion &&
     Number.isFinite(parsedContinueDose) &&
     parsedContinueDose > 0 &&
     Number.isFinite(currentMlPerHour) &&
@@ -250,23 +258,25 @@ export function MorfineTab({
     .sort((a, b) => b.value - a.value)[0];
 
   const applyCalculated24h = (targetMgPer24h: number) => {
-    const bolus = targetMgPer24h / 6;
     onChange({
       ...data,
+      opioidDosingApplied: true,
       continueDoseMgPer24h: formatMedicalNumber(targetMgPer24h),
-      startBolusMg: formatMedicalNumber(bolus),
-      bolusMg: formatMedicalNumber(bolus),
+      bolusMg: "",
+      startBolusMg: "",
       lockoutHours: formatMedicalNumber(lockoutForExistingHours),
       continuationAdvice: buildContinuationAdviceFromExistingOpioids()
     });
   };
 
   const applyAdvice = () => {
+    const cont = bundle.suggestions.continueDoseMgPer24h;
     onChange({
       ...data,
-      continueDoseMgPer24h: formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h),
-      startBolusMg: formatMedicalNumber(bundle.suggestions.startBolusMg),
-      bolusMg: formatMedicalNumber(bundle.suggestions.bolusMg),
+      opioidDosingApplied: true,
+      continueDoseMgPer24h: formatMedicalNumber(cont),
+      bolusMg: "",
+      startBolusMg: "",
       lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
     });
   };
@@ -274,10 +284,19 @@ export function MorfineTab({
   const applyNaivePracticalAdvice = () => {
     onChange({
       ...data,
+      opioidDosingApplied: true,
       continueDoseMgPer24h: formatMedicalNumber(naivePracticalContinueDoseMgPer24h),
-      startBolusMg: formatMedicalNumber(bundle.suggestions.startBolusMg),
-      bolusMg: formatMedicalNumber(bundle.suggestions.bolusMg),
+      bolusMg: "",
+      startBolusMg: "",
       lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
+    });
+  };
+
+  const handleBolusMgChange = (value: string) => {
+    onChange({
+      ...data,
+      bolusMg: value,
+      ...(data.startBolusEqualsBolus ? { startBolusMg: value } : {})
     });
   };
   const applyLowerConcentration = () => {
@@ -422,34 +441,34 @@ export function MorfineTab({
       <div className="general-group general-group--allow-overflow">
         <SectionHeader iconSrc={medicinesIcon} title="Middel" />
         <div className="general-group-body">
-          <div className="grid-2">
-          <FormField label="Middel en concentratie">
-              <select
-                value={data.concentrationMgPerMl}
-                onChange={(event) =>
-                  onChange({
-                    ...data,
-                    concentrationMgPerMl: Number(event.target.value) as 1 | 10 | 20
-                  })
+          <div className="stack">
+            <span className="form-label">{requiredLabel("Toediening")}</span>
+            <label className="checkbox-line">
+              <input
+                type="radio"
+                name="morfine-administration-mode"
+                checked={data.administrationMode === "intermittent_injection"}
+                onChange={() =>
+                  onChange({ ...data, administrationMode: "intermittent_injection", opioidDosingApplied: false })
                 }
-              >
-                {morfineConcentrations.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label.charAt(0).toUpperCase() + option.label.slice(1)}
-                  </option>
-                ))}
-              </select>
-          </FormField>
-          <FormField label="Startdatum">
-            <input
-              type="date"
-              lang="nl-NL"
-              value={data.startDate}
-              onChange={(event) => onChange({ ...data, startDate: event.target.value })}
-            />
-          </FormField>
+              />
+              Intermitterende injecties
+            </label>
+            <label className="checkbox-line">
+              <input
+                type="radio"
+                name="morfine-administration-mode"
+                checked={data.administrationMode === "continuous_infusion"}
+                onChange={() =>
+                  onChange({ ...data, administrationMode: "continuous_infusion", opioidDosingApplied: false })
+                }
+              />
+              Continue infusie (pomp)
+            </label>
           </div>
 
+          {data.administrationMode ? (
+            <>
           <div className="stack">
             <span className="form-label">{requiredLabel("Opioïdstatus")}</span>
             <label className="checkbox-line">
@@ -457,7 +476,7 @@ export function MorfineTab({
                 type="radio"
                 name="opioid-input-mode"
                 checked={data.opioidInputMode === "naive"}
-                onChange={() => onChange({ ...data, opioidInputMode: "naive" })}
+                onChange={() => onChange({ ...data, opioidInputMode: "naive", opioidDosingApplied: false })}
               />
               Opioïd-naïef
             </label>
@@ -466,7 +485,7 @@ export function MorfineTab({
                 type="radio"
                 name="opioid-input-mode"
                 checked={data.opioidInputMode === "existing"}
-                onChange={() => onChange({ ...data, opioidInputMode: "existing" })}
+                onChange={() => onChange({ ...data, opioidInputMode: "existing", opioidDosingApplied: false })}
               />
               Reken om vanuit bestaande dosering
             </label>
@@ -621,9 +640,12 @@ export function MorfineTab({
             </>
           ) : null}
 
-          {data.opioidInputMode ? (
+          {isContinuousInfusion && bundle.warnings.length > 0 ? (
+            <WarningBanner warnings={bundle.warnings} />
+          ) : null}
+
+          {data.opioidInputMode && isContinuousInfusion ? (
             <div className={`conversion-summary ${morfineRiskStripeClass}`}>
-              <WarningBanner warnings={bundle.warnings} />
               {data.opioidInputMode === "naive" ? (
                 <>
                   <p>
@@ -633,10 +655,7 @@ export function MorfineTab({
                   </p>
                   <ul>
                     <li>
-                      Richtlijn: Continue dosis {formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)}mg/24u,
-                      met oplaaddosis van {formatMedicalNumber(bundle.suggestions.startBolusMg)}mg, bolus{" "}
-                      {formatMedicalNumber(bundle.suggestions.bolusMg)}mg, lockout{" "}
-                      {formatMedicalNumber(bundle.suggestions.lockoutHours)}uur.
+                      Richtlijn: Continue dosis {formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)}mg/24u.
                     </li>
                     <li>
                       Praktisch: Laagste pompstand is 0,1ml/uur dus{" "}
@@ -649,6 +668,7 @@ export function MorfineTab({
                       .
                     </li>
                   </ul>
+                  <p className="small-muted">Bolus: aanbevolen 1/6–1/10 van 24-uursdosering.</p>
                 </>
               ) : (
                 <>
@@ -659,7 +679,7 @@ export function MorfineTab({
                           <th>Huidig opioïd</th>
                           <th>Dosering</th>
                           <th>Morfine s.c.</th>
-                          <th>Bolusdosis (⅙)</th>
+                          <th>Bolusdosis (1/6)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -697,6 +717,7 @@ export function MorfineTab({
                         Interpolatie: {item.interpolationNote}
                       </p>
                     ))}
+                  <p className="small-muted">Bolus: aanbevolen 1/6–1/10 van 24-uursdosering.</p>
                 </>
               )}
               {data.opioidInputMode === "existing" ? (
@@ -727,20 +748,88 @@ export function MorfineTab({
             </div>
           ) : null}
 
-          <h3>Pompinstellingen</h3>
+          {showContinuousPumpFields ? (
+            <>
           <div className="grid-2">
-            <FormField label="Oplaaddosis (mg)">
-              <input value={data.startBolusMg} onChange={(event) => onChange({ ...data, startBolusMg: event.target.value })} />
+            <FormField label="Middel en concentratie">
+              <select
+                value={data.concentrationMgPerMl}
+                onChange={(event) =>
+                  onChange({
+                    ...data,
+                    concentrationMgPerMl: Number(event.target.value) as 1 | 10 | 20
+                  })
+                }
+              >
+                {morfineConcentrations.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label.charAt(0).toUpperCase() + option.label.slice(1)}
+                  </option>
+                ))}
+              </select>
             </FormField>
-            <FormField label={requiredLabel("Continue dosis (mg/24u)")}>
-              <input value={data.continueDoseMgPer24h} onChange={(event) => onChange({ ...data, continueDoseMgPer24h: event.target.value })} />
+            <FormField label="Startdatum">
+              <input
+                type="date"
+                lang="nl-NL"
+                value={data.startDate}
+                onChange={(event) => onChange({ ...data, startDate: event.target.value })}
+              />
             </FormField>
-            <FormField label="Bolus (mg)">
-              <input value={data.bolusMg} onChange={(event) => onChange({ ...data, bolusMg: event.target.value })} />
-            </FormField>
-            <FormField label="Lockout (uur)">
-              <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
-            </FormField>
+          </div>
+          <h3>Pompinstellingen</h3>
+          <div className="morfine-pomp-grid">
+            <div className="morfine-pomp-cell--continue">
+              <FormField label={requiredLabel("Continue dosis (mg/24u)")}>
+                <input value={data.continueDoseMgPer24h} onChange={(event) => onChange({ ...data, continueDoseMgPer24h: event.target.value })} />
+              </FormField>
+            </div>
+            <div className="morfine-pomp-cell--bolus">
+              <FormField label={requiredLabel("Bolusdosis (mg)")}>
+                <MorfineBolusDoseCombobox
+                  continueDoseMgPer24h={data.continueDoseMgPer24h}
+                  value={data.bolusMg}
+                  onChange={handleBolusMgChange}
+                />
+              </FormField>
+            </div>
+            <div className="morfine-pomp-cell--lockout">
+              <FormField label="Lockout (uur)">
+                <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
+              </FormField>
+            </div>
+            <div className="morfine-pomp-cell--max">
+              <FormField label={requiredLabel("Max. extra doses / 24 uur")}>
+                <input value={data.maxExtraDosesPer24h} onChange={(event) => onChange({ ...data, maxExtraDosesPer24h: event.target.value })} />
+              </FormField>
+            </div>
+            <div className="morfine-pomp-cell--oplaad-row">
+              <div className="morfine-pomp-oplaad-row">
+                <label className="checkbox-line">
+                  <input
+                    type="checkbox"
+                    checked={data.startBolusEqualsBolus}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      onChange({
+                        ...data,
+                        startBolusEqualsBolus: checked,
+                        startBolusMg: checked ? data.bolusMg : data.startBolusMg
+                      });
+                    }}
+                  />
+                  Oplaaddosis gelijk aan bolus
+                </label>
+                {!data.startBolusEqualsBolus ? (
+                  <FormField label="Oplaaddosis (mg)">
+                    <input
+                      value={data.startBolusMg}
+                      onChange={(event) => onChange({ ...data, startBolusMg: event.target.value })}
+                    />
+                  </FormField>
+                ) : null}
+              </div>
+            </div>
           </div>
           {continueDoseTooLowForPump ? (
             <div className="conversion-summary morfine-conversion-summary--red">
@@ -749,7 +838,9 @@ export function MorfineTab({
               </p>
               <div className="segment">
                 <button type="button" onClick={applyLowerConcentration} disabled={!lowerConcentrationOption}>
-                  lagere concentratie
+                  {lowerConcentrationOption
+                    ? `lagere concentratie (${lowerConcentrationOption.value} mg/ml)`
+                    : "lagere concentratie"}
                 </button>
                 <button type="button" onClick={applyMinimalPumpDose}>
                   dosis naar {formatMedicalNumber(minContinueDoseAtCurrentConcentration)}mg/24u
@@ -774,7 +865,69 @@ export function MorfineTab({
               ml/uur = (mg/24u / 24) / concentratie. Product: {productText.morfine}.
             </p>
           ) : null}
+            </>
+          ) : null}
 
+          {showIntermittentFields ? (
+            <>
+              <div className="grid-2">
+                <FormField label="Middel en concentratie">
+                  <select
+                    value={data.concentrationMgPerMl}
+                    onChange={(event) =>
+                      onChange({
+                        ...data,
+                        concentrationMgPerMl: Number(event.target.value) as 1 | 10 | 20
+                      })
+                    }
+                  >
+                    {morfineConcentrations.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label.charAt(0).toUpperCase() + option.label.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+                <FormField label="Startdatum">
+                  <input
+                    type="date"
+                    lang="nl-NL"
+                    value={data.startDate}
+                    onChange={(event) => onChange({ ...data, startDate: event.target.value })}
+                  />
+                </FormField>
+              </div>
+              <h3>Intermitterende toediening</h3>
+              <div className="grid-2">
+                <FormField label={requiredLabel("Dosis per injectie (mg)")}>
+                  <input
+                    value={data.scheduledInjectionDoseMg}
+                    onChange={(event) => onChange({ ...data, scheduledInjectionDoseMg: event.target.value })}
+                  />
+                </FormField>
+                <FormField label={requiredLabel("Elke (uur)")}>
+                  <input
+                    value={data.scheduledInjectionIntervalHours}
+                    onChange={(event) => onChange({ ...data, scheduledInjectionIntervalHours: event.target.value })}
+                  />
+                </FormField>
+                <FormField label={requiredLabel("Extra dosis (mg)")}>
+                  <input value={data.bolusMg} onChange={(event) => onChange({ ...data, bolusMg: event.target.value })} />
+                </FormField>
+                <FormField label={requiredLabel("Interval tussen extra doses (uur)")}>
+                  <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
+                </FormField>
+                <FormField label={requiredLabel("Max. extra doses / 24 uur")}>
+                  <input
+                    value={data.maxExtraDosesPer24h}
+                    onChange={(event) => onChange({ ...data, maxExtraDosesPer24h: event.target.value })}
+                  />
+                </FormField>
+              </div>
+            </>
+          ) : null}
+
+          {(showContinuousPumpFields || showIntermittentFields) ? (
           <div className="stack">
             <label className="checkbox-line">
               <input
@@ -785,6 +938,9 @@ export function MorfineTab({
               Na minimaal 4 uur zo nodig ophogen met 50%
             </label>
           </div>
+          ) : null}
+            </>
+          ) : null}
         </div>
       </div>
 

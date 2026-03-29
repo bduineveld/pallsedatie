@@ -808,7 +808,10 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     const medFieldY1 = medicatieContentStartY;
     const medFieldY2 = medFieldY1 - fieldGap;
     const medFieldY3 = medFieldY2 - fieldGap;
-    const medicatieCheckboxY = medFieldY3;
+    const medFieldY4 = medFieldY3 - fieldGap;
+    const isMorfineContinuous = state.morfine.administrationMode === "continuous_infusion";
+    const isMorfineIntermittent = state.morfine.administrationMode === "intermittent_injection";
+    const medicatieCheckboxY = medFieldY4;
     const medicatieBlockBottomTightening = mmToPt * 3;
     const medicatieBottomY = medicatieCheckboxY - 14 + medicatieBlockBottomTightening;
 
@@ -829,12 +832,18 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
 
     drawSectionHeadingBox("Verzoek", verzoekHeadingY, verzoekBottomY);
     drawSectionHeadingBox("Indicatie", indicatieHeadingY, indicatieBottomY);
-    drawSectionHeadingBox("Medicatiegegevens (morfinepomp)", medicatieHeadingY, medicatieBottomY);
+    drawSectionHeadingBox(
+      isMorfineIntermittent ? "Medicatiegegevens (intermitterend)" : "Medicatiegegevens (morfinepomp)",
+      medicatieHeadingY,
+      medicatieBottomY
+    );
     drawSectionHeadingBox("Overige adviezen", overigeHeadingY, overigeBottomY);
 
     drawWideHighlightedField(
       "Uit te voeren handeling",
-      "Aansluiten medicatie via sc/iv infuuspomp",
+      isMorfineIntermittent
+        ? "Intermitterende toediening volgens onderstaand schema"
+        : "Aansluiten medicatie via sc/iv infuuspomp",
       verzoekActionY - indicatieContentDownShift,
       170
     );
@@ -855,6 +864,7 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
     const medLeftEndX = medMidX - columnGap / 2;
     const medRightEndX = marginX + contentWidth;
 
+    if (isMorfineContinuous) {
     /* Links: Medicatie + Continue dosis + checkbox. Rechts: Oplaaddosis, Bolus, Lockout. */
     drawField(
       "Medicatie",
@@ -906,13 +916,92 @@ export async function buildMorfinePdfBytes(state: AppFormState): Promise<Uint8Ar
       medRightEndX,
       true
     );
+    drawField(
+      "Max. extra doses/24u",
+      safe(state.morfine.maxExtraDosesPer24h),
+      leftX,
+      medFieldY3,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawField("Lockout", withUnit(state.morfine.lockoutHours, "uur"), medMidX, medFieldY3, medLabelWidth, medRightEndX, true);
     drawRoundedCheckboxLine(
       state.morfine.escalation50PercentAgreement,
       "Na minimaal 4 uur zo nodig ophogen met 50%",
       leftX,
       medicatieCheckboxY - mmToPt
     );
-    drawField("Lockout", withUnit(state.morfine.lockoutHours, "uur"), medMidX, medFieldY3, medLabelWidth, medRightEndX, true);
+    } else if (isMorfineIntermittent) {
+    drawField(
+      "Medicatie",
+      `Morfine ${state.morfine.concentrationMgPerMl} mg/ml`,
+      leftX,
+      medFieldY1,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawFieldMgWithOptionalMlSuffix(
+      "Dosis per injectie",
+      parseMgDoseWithOptionalMl(
+        state.morfine.scheduledInjectionDoseMg,
+        state.morfine.concentrationMgPerMl,
+        !state.general.hideMlPerHourOnPdf
+      ),
+      medMidX,
+      medFieldY1,
+      medLabelWidth,
+      medRightEndX,
+      true
+    );
+    drawField(
+      "Elke",
+      withUnit(state.morfine.scheduledInjectionIntervalHours, "uur"),
+      leftX,
+      medFieldY2,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawFieldMgWithOptionalMlSuffix(
+      "Extra dosis",
+      parseMgDoseWithOptionalMl(
+        state.morfine.bolusMg,
+        state.morfine.concentrationMgPerMl,
+        !state.general.hideMlPerHourOnPdf
+      ),
+      medMidX,
+      medFieldY2,
+      medLabelWidth,
+      medRightEndX,
+      true
+    );
+    drawField(
+      "Interval extra",
+      withUnit(state.morfine.lockoutHours, "uur"),
+      leftX,
+      medFieldY3,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawField(
+      "Max. extra doses/24u",
+      safe(state.morfine.maxExtraDosesPer24h),
+      medMidX,
+      medFieldY3,
+      medLabelWidth,
+      medRightEndX,
+      true
+    );
+    drawRoundedCheckboxLine(
+      state.morfine.escalation50PercentAgreement,
+      "Na minimaal 4 uur zo nodig ophogen met 50%",
+      leftX,
+      medicatieCheckboxY - mmToPt
+    );
+    }
     const advVoortzetten = splitAdviceIntoThreeLines(state.morfine.continuationAdvice);
     drawWideThreeLineHighlightedField(
       "Advies voortzetten/stoppen opioïden",

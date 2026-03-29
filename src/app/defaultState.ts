@@ -43,6 +43,9 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
       hideLogoOnPdf: false
     },
     morfine: {
+      administrationMode: "",
+      opioidDosingApplied: false,
+      startBolusEqualsBolus: true,
       opioidInputMode: "",
       diagnosis: "",
       indication: "",
@@ -50,6 +53,9 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
       existingOpioids: [],
       concentrationMgPerMl: 10,
       continueDoseMgPer24h: "",
+      scheduledInjectionDoseMg: "",
+      scheduledInjectionIntervalHours: "",
+      maxExtraDosesPer24h: "",
       startBolusMg: "",
       bolusMg: "",
       lockoutHours: "",
@@ -61,6 +67,7 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
       egfrUnder30: false
     },
     midazolam: {
+      sedationMode: "",
       diagnosis: "",
       indication: "",
       startDate: today,
@@ -75,6 +82,9 @@ export function createDefaultState(today = getLocalDateIso()): AppFormState {
       concentrationMgPerMl: 5,
       loadingDoseMg: "",
       continueDoseMgPer24h: "",
+      scheduledInjectionDoseMg: "",
+      scheduledInjectionIntervalHours: "",
+      maxExtraDosesPer24h: "",
       bolusMg: "",
       lockoutHours: "",
       cadPlacementAllowed: false,

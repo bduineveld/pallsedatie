@@ -16,6 +16,16 @@ describe("default dates", () => {
     const state = createDefaultState("2026-03-10");
     expect(state.morfine.opioidInputMode).toBe("");
   });
+
+  it("keeps administration and sedation modes empty by default", () => {
+    const state = createDefaultState("2026-03-10");
+    expect(state.morfine.administrationMode).toBe("");
+    expect(state.midazolam.sedationMode).toBe("");
+    expect(state.morfine.maxExtraDosesPer24h).toBe("");
+    expect(state.midazolam.scheduledInjectionDoseMg).toBe("");
+    expect(state.morfine.opioidDosingApplied).toBe(false);
+    expect(state.morfine.startBolusEqualsBolus).toBe(true);
+  });
 });
 
 describe("age helper", () => {
@@ -44,8 +54,6 @@ describe("morfine opioid-naive defaults", () => {
 
     const result = computeMorfineSuggestionBundle(state.morfine);
     expect(result.suggestions.continueDoseMgPer24h).toBe(15);
-    expect(result.suggestions.startBolusMg).toBe(5);
-    expect(result.suggestions.bolusMg).toBe(5);
     expect(result.suggestions.lockoutHours).toBe(4);
   });
 
@@ -56,7 +64,6 @@ describe("morfine opioid-naive defaults", () => {
 
     const result = computeMorfineSuggestionBundle(state.morfine);
     expect(result.suggestions.continueDoseMgPer24h).toBe(10);
-    expect(result.suggestions.bolusMg).toBe(5);
     expect(result.suggestions.lockoutHours).toBe(6);
   });
 });

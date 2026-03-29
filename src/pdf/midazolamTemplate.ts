@@ -789,9 +789,12 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const sectionBottomPadding = 6;
     const headingToFirstFieldOffset = 14;
     const indicatieHeadingToFirstFieldOffset = 18;
-    const verzoekHeadingToFirstFieldOffset = state.midazolam.cadPlacementAllowed
-      ? 21
-      : indicatieHeadingToFirstFieldOffset;
+    const isMidazContinuous = state.midazolam.sedationMode === "continuous";
+    const isMidazIntermittent = state.midazolam.sedationMode === "intermittent";
+    const verzoekHeadingToFirstFieldOffset =
+      isMidazContinuous && state.midazolam.cadPlacementAllowed
+        ? 21
+        : indicatieHeadingToFirstFieldOffset;
     const indicatieContentDownShift = 4;
     const medicatieContentDownShift = 8;
     const overigeContentDownShift = 4;
@@ -799,7 +802,8 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const verzoekHeadingY = patientTableBottom - sectionGap - sectionTopPadding;
     const verzoekActionY = verzoekHeadingY - verzoekHeadingToFirstFieldOffset;
     const verzoekCadY = verzoekActionY - fieldGap;
-    const verzoekStartDatumY = verzoekActionY - (state.midazolam.cadPlacementAllowed ? fieldGap * 2 : fieldGap);
+    const verzoekStartDatumY =
+      verzoekActionY - (isMidazContinuous && state.midazolam.cadPlacementAllowed ? fieldGap * 2 : fieldGap);
     const verzoekBottomY = verzoekStartDatumY - 8;
 
     const indicatieHeadingY = verzoekBottomY - sectionBottomPadding - sectionGap - sectionTopPadding;
@@ -812,7 +816,8 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const medFieldY1 = medicatieContentStartY;
     const medFieldY2 = medFieldY1 - fieldGap;
     const medFieldY3 = medFieldY2 - fieldGap;
-    const medicatieCheckboxY = medFieldY3;
+    const medFieldY4 = medFieldY3 - fieldGap;
+    const medicatieCheckboxY = medFieldY4;
     const medicatieBlockBottomTightening = mmToPt * 3;
     const medicatieBottomY = medicatieCheckboxY - 14 + medicatieBlockBottomTightening;
 
@@ -830,10 +835,14 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
 
     drawSectionHeadingBox("Verzoek", verzoekHeadingY, verzoekBottomY);
     drawSectionHeadingBox("Indicatie", indicatieHeadingY, indicatieBottomY);
-    drawSectionHeadingBox("Medicatiegegevens (midazolampomp)", medicatieHeadingY, medicatieBottomY);
+    drawSectionHeadingBox(
+      isMidazIntermittent ? "Medicatiegegevens (intermitterend)" : "Medicatiegegevens (midazolampomp)",
+      medicatieHeadingY,
+      medicatieBottomY
+    );
     drawSectionHeadingBox("Overige adviezen", overigeHeadingY, overigeBottomY);
 
-    if (state.midazolam.cadPlacementAllowed) {
+    if (isMidazContinuous && state.midazolam.cadPlacementAllowed) {
       drawWideTwoLineHighlightedField(
         "Uit te voeren handeling",
         "Aansluiten medicatie via sc/iv infuuspomp",
@@ -842,10 +851,17 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
         verzoekCadY,
         170
       );
-    } else {
+    } else if (isMidazContinuous) {
       drawWideHighlightedField(
         "Uit te voeren handeling",
         "Aansluiten medicatie via sc/iv infuuspomp",
+        verzoekActionY - indicatieContentDownShift,
+        170
+      );
+    } else {
+      drawWideHighlightedField(
+        "Uit te voeren handeling",
+        "Intermitterende toediening volgens onderstaand schema",
         verzoekActionY - indicatieContentDownShift,
         170
       );
@@ -853,7 +869,8 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     drawWideHighlightedField(
       "Startdatum",
       formatDateNl(state.midazolam.startDate),
-      verzoekStartDatumY - (state.midazolam.cadPlacementAllowed ? 0 : indicatieContentDownShift)
+      verzoekStartDatumY -
+        (isMidazContinuous && state.midazolam.cadPlacementAllowed ? 0 : indicatieContentDownShift)
     );
     drawWideHighlightedField(
       "Diagnose / ziektebeeld",
@@ -871,6 +888,7 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
     const medLeftEndX = medMidX - columnGap / 2;
     const medRightEndX = marginX + contentWidth;
 
+    if (isMidazContinuous) {
     drawField(
       "Medicatie",
       `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml`,
@@ -921,13 +939,92 @@ export async function buildMidazolamPdfBytes(state: AppFormState): Promise<Uint8
       medRightEndX,
       true
     );
+    drawField(
+      "Max. extra doses/24u",
+      safe(state.midazolam.maxExtraDosesPer24h),
+      leftX,
+      medFieldY3,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawField("Lockout", withUnit(state.midazolam.lockoutHours, "uur"), medMidX, medFieldY3, medLabelWidth, medRightEndX, true);
     drawRoundedCheckboxLine(
       state.midazolam.escalation50PercentAgreement,
       "Na minimaal 4 uur zo nodig ophogen met 50%",
       leftX,
       medicatieCheckboxY - mmToPt
     );
-    drawField("Lockout", withUnit(state.midazolam.lockoutHours, "uur"), medMidX, medFieldY3, medLabelWidth, medRightEndX, true);
+    } else if (isMidazIntermittent) {
+    drawField(
+      "Medicatie",
+      `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml`,
+      leftX,
+      medFieldY1,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawFieldMgWithOptionalMlSuffix(
+      "Dosis per injectie",
+      parseMgDoseWithOptionalMl(
+        state.midazolam.scheduledInjectionDoseMg,
+        state.midazolam.concentrationMgPerMl,
+        !state.general.hideMlPerHourOnPdf
+      ),
+      medMidX,
+      medFieldY1,
+      medLabelWidth,
+      medRightEndX,
+      true
+    );
+    drawField(
+      "Elke",
+      withUnit(state.midazolam.scheduledInjectionIntervalHours, "uur"),
+      leftX,
+      medFieldY2,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawFieldMgWithOptionalMlSuffix(
+      "Extra dosis",
+      parseMgDoseWithOptionalMl(
+        state.midazolam.bolusMg,
+        state.midazolam.concentrationMgPerMl,
+        !state.general.hideMlPerHourOnPdf
+      ),
+      medMidX,
+      medFieldY2,
+      medLabelWidth,
+      medRightEndX,
+      true
+    );
+    drawField(
+      "Interval extra",
+      withUnit(state.midazolam.lockoutHours, "uur"),
+      leftX,
+      medFieldY3,
+      medLabelWidth,
+      medLeftEndX,
+      true
+    );
+    drawField(
+      "Max. extra doses/24u",
+      safe(state.midazolam.maxExtraDosesPer24h),
+      medMidX,
+      medFieldY3,
+      medLabelWidth,
+      medRightEndX,
+      true
+    );
+    drawRoundedCheckboxLine(
+      state.midazolam.escalation50PercentAgreement,
+      "Na minimaal 4 uur zo nodig ophogen met 50%",
+      leftX,
+      medicatieCheckboxY - mmToPt
+    );
+    }
     const advOpmerkingen = splitAdviceIntoThreeLines(state.midazolam.remarks);
     drawWideThreeLineHighlightedField(
       "Afwijkend ophoogbeleid / opmerkingen",

@@ -158,12 +158,15 @@ export function MidazolamTab({
     }
     return midazolamIndicationOptions.filter((option) => option.toLowerCase().includes(needle));
   }, [data.indication]);
+  const isContinuousSedation = data.sedationMode === "continuous";
+  const isIntermittentSedation = data.sedationMode === "intermittent";
   const minPumpMlPerHour = 0.1;
   const pumpStepMlPerHour = 0.01;
   const minContinueDoseAtCurrentConcentration = minPumpMlPerHour * 24 * data.concentrationMgPerMl;
   const parsedContinueDose = Number.parseFloat(data.continueDoseMgPer24h.replace(",", "."));
   const currentMlPerHour = parsedContinueDose / 24 / data.concentrationMgPerMl;
   const continueDoseTooLowForPump =
+    isContinuousSedation &&
     Number.isFinite(parsedContinueDose) &&
     parsedContinueDose > 0 &&
     Number.isFinite(currentMlPerHour) &&
@@ -174,6 +177,7 @@ export function MidazolamTab({
     Number.isFinite(currentPumpStepRaw) &&
     Math.abs(currentPumpStepRaw - currentPumpStepRounded) < 1e-8;
   const continueDoseBetweenPumpSteps =
+    isContinuousSedation &&
     Number.isFinite(parsedContinueDose) &&
     parsedContinueDose > 0 &&
     Number.isFinite(currentMlPerHour) &&
@@ -303,6 +307,30 @@ export function MidazolamTab({
       <div className="general-group">
         <SectionHeader iconSrc={medicinesIcon} title="Middel" />
         <div className="general-group-body">
+          <div className="stack">
+            <span className="form-label">{requiredLabel("Sedatie")}</span>
+            <label className="checkbox-line">
+              <input
+                type="radio"
+                name="midazolam-sedation-mode"
+                checked={data.sedationMode === "continuous"}
+                onChange={() => onChange({ ...data, sedationMode: "continuous" })}
+              />
+              Continue sedatie
+            </label>
+            <label className="checkbox-line">
+              <input
+                type="radio"
+                name="midazolam-sedation-mode"
+                checked={data.sedationMode === "intermittent"}
+                onChange={() => onChange({ ...data, sedationMode: "intermittent" })}
+              />
+              Intermitterende sedatie
+            </label>
+          </div>
+
+          {data.sedationMode ? (
+            <>
           <div className="grid-2">
             <FormField label="Middel en concentratie">
                 <select
@@ -404,31 +432,35 @@ export function MidazolamTab({
             </div>
           </div>
 
-          <div className={`conversion-summary midazolam-advice-window ${riskStripeClass}`}>
-            {bundle.adviceSummary.isMixedRisk ? (
-              <section className="warning-banner">
-                {bundle.adviceSummary.combinedSelectionLine}
-              </section>
-            ) : (
-              <p>{bundle.adviceSummary.combinedSelectionLine}</p>
-            )}
-            {bundle.adviceSummary.blocks.map((block) => (
-              <div className="midazolam-advice-block" key={block.id}>
-                <p>
-                  <strong>{block.heading}.</strong> {block.adviceLine}
-                </p>
-                <div className="segment">
-                  <button type="button" onClick={() => applyMidazolamPreset(block.options[0])}>
-                    {block.options[0].buttonLabel}
-                  </button>
-                  <button type="button" onClick={() => applyMidazolamPreset(block.options[1])}>
-                    {block.options[1].buttonLabel}
-                  </button>
+          {isContinuousSedation ? (
+            <div className={`conversion-summary midazolam-advice-window ${riskStripeClass}`}>
+              {bundle.adviceSummary.isMixedRisk ? (
+                <section className="warning-banner">
+                  {bundle.adviceSummary.combinedSelectionLine}
+                </section>
+              ) : (
+                <p>{bundle.adviceSummary.combinedSelectionLine}</p>
+              )}
+              {bundle.adviceSummary.blocks.map((block) => (
+                <div className="midazolam-advice-block" key={block.id}>
+                  <p>
+                    <strong>{block.heading}.</strong> {block.adviceLine}
+                  </p>
+                  <div className="segment">
+                    <button type="button" onClick={() => applyMidazolamPreset(block.options[0])}>
+                      {block.options[0].buttonLabel}
+                    </button>
+                    <button type="button" onClick={() => applyMidazolamPreset(block.options[1])}>
+                      {block.options[1].buttonLabel}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : null}
 
+          {isContinuousSedation ? (
+            <>
           <div className="grid-2">
             <FormField label="Oplaaddosis (mg)">
               <input value={data.loadingDoseMg} onChange={(event) => onChange({ ...data, loadingDoseMg: event.target.value })} />
@@ -442,6 +474,12 @@ export function MidazolamTab({
             <FormField label="Lockouttijd (uur)">
               <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
             </FormField>
+            <FormField label={requiredLabel("Max. extra doses / 24 uur")}>
+              <input
+                value={data.maxExtraDosesPer24h}
+                onChange={(event) => onChange({ ...data, maxExtraDosesPer24h: event.target.value })}
+              />
+            </FormField>
           </div>
           {continueDoseTooLowForPump ? (
             <div className="conversion-summary morfine-conversion-summary--red">
@@ -450,7 +488,9 @@ export function MidazolamTab({
               </p>
               <div className="segment">
                 <button type="button" onClick={applyLowerConcentration} disabled={!lowerConcentrationOption}>
-                  lagere concentratie
+                  {lowerConcentrationOption
+                    ? `lagere concentratie (${lowerConcentrationOption.value} mg/ml)`
+                    : "lagere concentratie"}
                 </button>
                 <button type="button" onClick={applyMinimalPumpDose}>
                   dosis naar {formatNl(minContinueDoseAtCurrentConcentration)}mg/24u
@@ -471,6 +511,49 @@ export function MidazolamTab({
             </div>
           ) : null}
 
+          {showMlPerHour ? (
+            <p className="small-muted">
+              ml/uur = mg/uur / concentratie. Product: {productText.midazolam}.
+            </p>
+          ) : null}
+          {bundle.suggestions.explanation ? (
+            <p className="small-muted">{bundle.suggestions.explanation}</p>
+          ) : null}
+            </>
+          ) : null}
+
+          {isIntermittentSedation ? (
+            <>
+              <h3>Intermitterende toediening</h3>
+              <div className="grid-2">
+                <FormField label={requiredLabel("Dosis per injectie (mg)")}>
+                  <input
+                    value={data.scheduledInjectionDoseMg}
+                    onChange={(event) => onChange({ ...data, scheduledInjectionDoseMg: event.target.value })}
+                  />
+                </FormField>
+                <FormField label={requiredLabel("Elke (uur)")}>
+                  <input
+                    value={data.scheduledInjectionIntervalHours}
+                    onChange={(event) => onChange({ ...data, scheduledInjectionIntervalHours: event.target.value })}
+                  />
+                </FormField>
+                <FormField label={requiredLabel("Extra dosis (mg)")}>
+                  <input value={data.bolusMg} onChange={(event) => onChange({ ...data, bolusMg: event.target.value })} />
+                </FormField>
+                <FormField label={requiredLabel("Interval tussen extra doses (uur)")}>
+                  <input value={data.lockoutHours} onChange={(event) => onChange({ ...data, lockoutHours: event.target.value })} />
+                </FormField>
+                <FormField label={requiredLabel("Max. extra doses / 24 uur")}>
+                  <input
+                    value={data.maxExtraDosesPer24h}
+                    onChange={(event) => onChange({ ...data, maxExtraDosesPer24h: event.target.value })}
+                  />
+                </FormField>
+              </div>
+            </>
+          ) : null}
+
           <div className="stack">
             <label className="checkbox-line">
               <input
@@ -481,14 +564,7 @@ export function MidazolamTab({
               Na minimaal 4 uur zo nodig ophogen met 50%
             </label>
           </div>
-
-          {showMlPerHour ? (
-            <p className="small-muted">
-              ml/uur = mg/uur / concentratie. Product: {productText.midazolam}.
-            </p>
-          ) : null}
-          {bundle.suggestions.explanation ? (
-            <p className="small-muted">{bundle.suggestions.explanation}</p>
+            </>
           ) : null}
         </div>
       </div>
@@ -496,6 +572,7 @@ export function MidazolamTab({
       <div className="general-group">
         <SectionHeader iconSrc={notesIcon} title="Overig" />
         <div className="general-group-body">
+          {data.sedationMode === "continuous" ? (
           <div className="stack">
             <label className="checkbox-line">
               <input
@@ -533,6 +610,7 @@ export function MidazolamTab({
               </FormField>
             ) : null}
           </div>
+          ) : null}
 
           <FormField label="Afwijkend beleid / opmerkingen">
             <textarea value={data.remarks} onChange={(event) => onChange({ ...data, remarks: event.target.value })} />
