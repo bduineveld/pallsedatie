@@ -13,7 +13,7 @@ export interface MorfineBolusFractionOption {
   recommended: boolean;
   /** Standaardkeuze: 1/6 */
   isDefault: boolean;
-  /** Volledige regel voor in de lijst, bv. "4mg (1/6, meest aanbevolen)" */
+  /** Volledige regel voor in de lijst, bv. "4mg (1/6, volgens richtlijn)" */
   listLabel: string;
 }
 
@@ -60,7 +60,7 @@ export function buildMorfineBolusFractionOptions(continueMgPer24h: number): Morf
     const fractionDisplay = fractionDisplayForDenominator(n);
     const mgStr = formatMorfineBolusMgString(bolusMg);
     const suffix =
-      n === 6 ? ", meest aanbevolen" : recommended ? ", aanbevolen" : "";
+      n === 6 ? ", volgens richtlijn" : recommended ? ", aanbevolen" : "";
     const listLabel = `${mgStr}mg (${fractionDisplay}${suffix})`;
 
     options.push({

@@ -1,10 +1,6 @@
 import { useMemo, useState } from "react";
 import { morfineConcentrations, productText } from "../data/concentrationOptions";
-import {
-  localAssumptionText,
-  morfineGuidelinePanelText,
-  opioidConversionTableHeader
-} from "../data/guidelineText";
+import { morfineGuidelinePanelText, opioidConversionTableHeader } from "../data/guidelineText";
 import { opioidDisplayNames, opioidToMorphineScIvTable } from "../data/opioidRotationTable";
 import { computeMorfineSuggestionBundle } from "../domain/dosageSuggestions/morfineSuggestions";
 import { formatMedicalNumber } from "../domain/format/numberFormat";
@@ -50,6 +46,9 @@ const opioidOptions: { value: OpioidKind; label: string }[] = [
 const methadoneRatioOptions: ExistingOpioidEntry["methadoneRatioChoice"][] = [5, 6, 7, 8, 9, 10];
 
 const morfineIndicationOptions = ["pijn", "dyspnoe"];
+
+/** Opioïd-naïef continue pomp: vaste praktisch-dosis bij «Praktisch overnemen». */
+const NAIVE_PRACTICAL_CONTINUE_DOSE_MG_PER24H = 24;
 
 /** Richtlijn intermitterende morfine-injecties (fixed interval 4 u → 6 injecties/24 u). */
 const INTERMITTENT_RICHTLIJN_INTERVAL_H = 4;
@@ -294,12 +293,11 @@ export function MorfineTab({
       lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
     });
   };
-  const naivePracticalContinueDoseMgPer24h = 24;
   const applyNaivePracticalAdvice = () => {
     onChange({
       ...data,
       opioidDosingApplied: true,
-      continueDoseMgPer24h: formatMedicalNumber(naivePracticalContinueDoseMgPer24h),
+      continueDoseMgPer24h: formatMedicalNumber(NAIVE_PRACTICAL_CONTINUE_DOSE_MG_PER24H),
       bolusMg: "",
       startBolusMg: "",
       lockoutHours: formatMedicalNumber(bundle.suggestions.lockoutHours)
@@ -762,8 +760,7 @@ export function MorfineTab({
                       Richtlijn: Continue dosis {formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)}mg/24u.
                     </li>
                     <li>
-                      Praktisch: Laagste pompstand is 0,1ml/uur dus{" "}
-                      {formatMedicalNumber(naivePracticalContinueDoseMgPer24h)}mg/24u
+                      Praktisch: laagste pompstand is 24mg/24u (0,1ml/uur) bij 10 mg/ml
                       {data.ageOver70 && data.egfrUnder30 ? (
                         <>
                           , <u>dit is ruim het dubbele</u>
@@ -845,7 +842,7 @@ export function MorfineTab({
                     Richtlijn overnemen ({formatMedicalNumber(bundle.suggestions.continueDoseMgPer24h)}mg/24u)
                   </button>
                   <button type="button" onClick={applyNaivePracticalAdvice}>
-                    Praktisch overnemen ({formatMedicalNumber(naivePracticalContinueDoseMgPer24h)}mg/24u)
+                    Praktisch overnemen ({formatMedicalNumber(NAIVE_PRACTICAL_CONTINUE_DOSE_MG_PER24H)}mg/24u)
                   </button>
                 </div>
               )}
@@ -1223,7 +1220,6 @@ export function MorfineTab({
         tableHeader={opioidConversionTableHeader}
         tableRows={conversionTableRows}
       />
-      <GuidelinePanel title="Toelichting lokale aannames" lines={localAssumptionText} />
     </section>
   );
 }
