@@ -6,14 +6,17 @@ export function computeMidazolamSuggestionBundle(form: MidazolamFormData) {
     currentContinueDoseMgPer24h: form.continueDoseMgPer24h
       ? Number(form.continueDoseMgPer24h)
       : undefined,
-    ageOver70: form.ageOver70,
-    egfrUnder30: form.egfrUnder30,
-    hepaticImpairment: form.hepaticImpairment,
-    cachexiaOrFrailty: form.cachexiaOrFrailty,
-    chronicBenzodiazepineUse: form.chronicBenzodiazepineUse,
-    alcoholUse: form.alcoholUse,
-    severeAgitationDelirium: form.severeAgitationDelirium,
-    severeDyspneaAnxiety: form.severeDyspneaAnxiety
+    ageOver60: form.ageOver60,
+    weightUnder60Kg: form.weightUnder60Kg,
+    severeRenalOrHepaticImpairment: form.severeRenalOrHepaticImpairment,
+    cyp3aInhibitorComedication: form.cyp3aInhibitorComedication,
+    lowSerumAlbumin: form.lowSerumAlbumin,
+    valproicAcidUse: form.valproicAcidUse,
+    severeDelirium: form.severeDelirium,
+    rapidMetabolism: form.rapidMetabolism,
+    smoking: form.smoking,
+    longTermBenzodiazepineTolerance: form.longTermBenzodiazepineTolerance,
+    cyp3aInducerComedication: form.cyp3aInducerComedication
   };
   const suggestions = suggestMidazolamSettings(guidelineInput);
   const adviceSummary = buildMidazolamAdviceSummary(guidelineInput);

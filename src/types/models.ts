@@ -99,19 +99,47 @@ export interface MorfineFormData {
 
 export interface MidazolamFormData {
   sedationMode: "" | "continuous" | "intermittent";
+  /**
+   * Route van toediening:
+   * - bij sedatie: injecties (losse bolussen) of pomp/continue infusie.
+   * Wordt gecombineerd met `sedationMode` voor UI/validatie/PDF.
+   */
+  deliveryMode: "" | "injections" | "pump_infusion";
+  /** Alleen UI: oplaaddosis = bolus (zoals bij morfine-pomp). */
+  startBolusEqualsBolus: boolean;
+  /** Alleen UI: zo nodig extra dosis = geplande dosis per injectie. */
+  extraDosisGelijkScheduled: boolean;
   diagnosis: string;
   indication: string;
   startDate: string;
-  ageOver70: boolean;
-  egfrUnder30: boolean;
-  hepaticImpairment: boolean;
-  cachexiaOrFrailty: boolean;
-  chronicBenzodiazepineUse: boolean;
-  alcoholUse: boolean;
-  severeAgitationDelirium: boolean;
-  severeDyspneaAnxiety: boolean;
+  /** Indicatie lagere dosering (standaard). */
+  ageOver60: boolean;
+  weightUnder60Kg: boolean;
+  severeRenalOrHepaticImpairment: boolean;
+  cyp3aInhibitorComedication: boolean;
+  /** Indicatie lagere dosering met ander doseeradvies (albumine / valproïnezuur). */
+  lowSerumAlbumin: boolean;
+  valproicAcidUse: boolean;
+  /** Indicatie hogere dosering. */
+  severeDelirium: boolean;
+  rapidMetabolism: boolean;
+  smoking: boolean;
+  longTermBenzodiazepineTolerance: boolean;
+  cyp3aInducerComedication: boolean;
+  /** Indicatie overleg palliatief team (los van doseer-risico). */
+  palliativeTeamConsultAlcoholAbuse: boolean;
+  palliativeTeamConsultDrugUse: boolean;
+  palliativeTeamConsultHighPsychopharmaca: boolean;
   concentrationMgPerMl: 1 | 2 | 5;
   loadingDoseMg: string;
+  /**
+   * Alleen intermitterende sedatie + pomp: onderhoudssnelheid in mg/uur (niet mg/24u).
+   */
+  intermittentPumpMaintenanceMgPerHour: string;
+  /** Intermitterende pomp: wanneer start (bijv. inslaaptijd of 21:00). */
+  intermittentPumpStartTime: string;
+  /** Intermitterende pomp: wanneer onderhoud stopt (bijv. 2u voor ontwaken of 06:00). */
+  intermittentPumpStopTime: string;
   continueDoseMgPer24h: string;
   scheduledInjectionDoseMg: string;
   scheduledInjectionIntervalHours: string;

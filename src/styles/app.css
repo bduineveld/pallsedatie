@@ -613,6 +613,22 @@ body {
   font-weight: 700;
 }
 
+.midazolam-intermittent-maintenance-autocomplete-menu {
+  max-height: 220px;
+}
+
+.midazolam-intermittent-maintenance-option--default {
+  font-weight: 700;
+}
+
+.midazolam-intermittent-timing-autocomplete-menu {
+  max-height: 280px;
+}
+
+.midazolam-intermittent-timing-option--default {
+  font-weight: 700;
+}
+
 .morfine-max-doses-per24-autocomplete-menu {
   max-height: 220px;
 }
@@ -984,8 +1000,66 @@ textarea {
   margin-bottom: 0.2rem;
 }
 
+.midazolam-risk-columns .midazolam-risk-subgroup-label {
+  margin-top: 0.65rem;
+  font-weight: 600;
+}
+
 .midazolam-advice-window > p {
   margin: 0;
+}
+
+.midazolam-advice-window > p.midazolam-richtlijn-paragraph {
+  margin-bottom: 0.65rem;
+}
+
+.midazolam-richtlijn-block {
+  margin-bottom: 0.65rem;
+}
+
+.midazolam-richtlijn-block .midazolam-richtlijn-paragraph {
+  margin: 0 0 0.5rem;
+}
+
+.midazolam-richtlijn-bullet-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.25rem;
+  line-height: 1.45;
+}
+
+.midazolam-richtlijn-bullet-list li {
+  margin-top: 0.25rem;
+}
+
+.midazolam-continuous-oplaad-segment {
+  margin-bottom: 0.5rem;
+}
+
+.midazolam-indicatie-heading {
+  margin: 0.55rem 0 0.25rem;
+  font-size: inherit;
+  line-height: 1.35;
+}
+
+.midazolam-indicatie-heading .midazolam-indicatie-reasons {
+  font-weight: 400;
+}
+
+.midazolam-richtlijn-sub {
+  margin: 0.35rem 0 0.45rem;
+  font-size: inherit;
+  line-height: 1.45;
+}
+
+.midazolam-advice-red-notice {
+  margin: 0;
+  color: #b91c1c;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.midazolam-advice-red-notice--footer {
+  margin-top: 0.35rem;
 }
 
 .midazolam-mixed-warning {

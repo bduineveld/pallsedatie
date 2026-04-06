@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
+import {
+  INTERMITTENT_PUMP_START_DEFAULT,
+  INTERMITTENT_PUMP_STOP_DEFAULT
+} from "../domain/guidelineLogic/midazolamIntermittentPumpTimingOptions";
 import { createDefaultState, getLocalDateIso } from "../app/defaultState";
 import { computeMorfineSuggestionBundle } from "../domain/dosageSuggestions/morfineSuggestions";
-import { isOlderThan70 } from "../domain/validation/age";
+import { isOlderThan60, isOlderThan70 } from "../domain/validation/age";
 
 describe("default dates", () => {
   it("uses today as default physician and start dates", () => {
@@ -21,8 +25,15 @@ describe("default dates", () => {
     const state = createDefaultState("2026-03-10");
     expect(state.morfine.administrationMode).toBe("");
     expect(state.midazolam.sedationMode).toBe("");
+    expect(state.midazolam.deliveryMode).toBe("");
+    expect(state.midazolam.startBolusEqualsBolus).toBe(true);
+    expect(state.midazolam.extraDosisGelijkScheduled).toBe(true);
     expect(state.morfine.maxExtraDosesPer24h).toBe("");
+    expect(state.midazolam.maxExtraDosesPer24h).toBe("6");
     expect(state.midazolam.scheduledInjectionDoseMg).toBe("");
+    expect(state.midazolam.intermittentPumpMaintenanceMgPerHour).toBe("");
+    expect(state.midazolam.intermittentPumpStartTime).toBe(INTERMITTENT_PUMP_START_DEFAULT);
+    expect(state.midazolam.intermittentPumpStopTime).toBe(INTERMITTENT_PUMP_STOP_DEFAULT);
     expect(state.morfine.opioidDosingApplied).toBe(false);
     expect(state.morfine.intermittentOpioidDosingApplied).toBe(false);
     expect(state.morfine.startBolusEqualsBolus).toBe(true);
@@ -50,6 +61,16 @@ describe("age helper", () => {
   it("returns false when age is 70 or less", () => {
     const today = new Date("2026-03-10");
     expect(isOlderThan70("1956-03-10", today)).toBe(false);
+  });
+
+  it("returns true when age is over 60", () => {
+    const today = new Date("2026-03-10");
+    expect(isOlderThan60("1960-01-01", today)).toBe(true);
+  });
+
+  it("returns false when age is 60 or less", () => {
+    const today = new Date("2026-03-10");
+    expect(isOlderThan60("1966-03-10", today)).toBe(false);
   });
 });
 

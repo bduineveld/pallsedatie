@@ -76,29 +76,83 @@ export function validateMidazolamForm(state: AppFormState): ValidationResult {
   if (!state.midazolam.sedationMode) {
     errors.push("Kies continue of intermitterende sedatie (midazolam).");
   }
-  if (!hasText(state.midazolam.maxExtraDosesPer24h)) {
-    errors.push("Max. extra doses per 24 uur (midazolam) ontbreekt.");
+
+  if (!state.midazolam.deliveryMode) {
+    errors.push("Kies injecties of pomp/continue infusie (midazolam).");
   }
+
   if (state.midazolam.sedationMode === "continuous") {
-    if (!hasText(state.midazolam.continueDoseMgPer24h)) {
-      errors.push("Continue dosering midazolam ontbreekt.");
-    }
-    if (!hasText(state.midazolam.bolusMg)) {
-      errors.push("Bolusdosering midazolam ontbreekt.");
+    if (state.midazolam.deliveryMode === "pump_infusion") {
+      if (!hasText(state.midazolam.continueDoseMgPer24h)) {
+        errors.push("Continue dosering midazolam ontbreekt.");
+      }
+      if (!hasText(state.midazolam.bolusMg)) {
+        errors.push("Bolusdosering midazolam ontbreekt.");
+      }
+      if (!hasText(state.midazolam.lockoutHours)) {
+        errors.push("Lockouttijd (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.maxExtraDosesPer24h)) {
+        errors.push("Max. extra doses per 24 uur (midazolam) ontbreekt.");
+      }
+    } else if (state.midazolam.deliveryMode === "injections") {
+      if (!hasText(state.midazolam.scheduledInjectionDoseMg)) {
+        errors.push("Dosis per injectie (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.scheduledInjectionIntervalHours)) {
+        errors.push("Elke (uur) voor midazolam ontbreekt.");
+      }
+      if (!state.midazolam.extraDosisGelijkScheduled && !hasText(state.midazolam.bolusMg)) {
+        errors.push("Zo nodig extra dosis (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.lockoutHours)) {
+        errors.push("Minimale tijd tussen extra doses (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.maxExtraDosesPer24h)) {
+        errors.push("Totaal max. doses per 24 uur (midazolam) ontbreekt.");
+      }
     }
   }
+
   if (state.midazolam.sedationMode === "intermittent") {
-    if (!hasText(state.midazolam.scheduledInjectionDoseMg)) {
-      errors.push("Dosis per geplande injectie (midazolam) ontbreekt.");
-    }
-    if (!hasText(state.midazolam.scheduledInjectionIntervalHours)) {
-      errors.push("Interval geplande injecties (midazolam) ontbreekt.");
-    }
-    if (!hasText(state.midazolam.bolusMg)) {
-      errors.push("Extra dosis (midazolam) ontbreekt.");
-    }
-    if (!hasText(state.midazolam.lockoutHours)) {
-      errors.push("Interval tussen extra doses (midazolam) ontbreekt.");
+    if (state.midazolam.deliveryMode === "pump_infusion") {
+      if (!hasText(state.midazolam.loadingDoseMg)) {
+        errors.push("Oplaaddosis (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.intermittentPumpMaintenanceMgPerHour)) {
+        errors.push("Onderhoudsdosis (mg/uur) midazolam ontbreekt.");
+      }
+      if (!hasText(state.midazolam.bolusMg)) {
+        errors.push("Bolusdosering midazolam ontbreekt.");
+      }
+      if (!hasText(state.midazolam.lockoutHours)) {
+        errors.push("Lockouttijd (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.maxExtraDosesPer24h)) {
+        errors.push("Max. extra doses per 24 uur (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.intermittentPumpStartTime)) {
+        errors.push("Starttijd (midazolam, intermitterende pomp) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.intermittentPumpStopTime)) {
+        errors.push("Stoptijd onderhoud (midazolam, intermitterende pomp) ontbreekt.");
+      }
+    } else if (state.midazolam.deliveryMode === "injections") {
+      if (!hasText(state.midazolam.scheduledInjectionDoseMg)) {
+        errors.push("Dosis per geplande injectie (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.scheduledInjectionIntervalHours)) {
+        errors.push("Interval geplande injecties (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.bolusMg)) {
+        errors.push("Extra dosis (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.lockoutHours)) {
+        errors.push("Interval tussen extra doses (midazolam) ontbreekt.");
+      }
+      if (!hasText(state.midazolam.maxExtraDosesPer24h)) {
+        errors.push("Max. extra doses per 24 uur (midazolam) ontbreekt.");
+      }
     }
   }
   return { valid: errors.length === 0, errors };

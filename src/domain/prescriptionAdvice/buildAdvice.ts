@@ -84,6 +84,28 @@ function calculateMaxDaysIntermittentMorfine(
   return totalMg / dailyUsage;
 }
 
+/**
+ * Midazolam continue via injecties:
+ * maxDosesPer24h = maximaal aantal injecties per 24 uur (incl. basis injecties; er is geen continue dosis).
+ */
+function calculateMaxDaysContinuousInjections(
+  bolusMg: number,
+  lockoutHours: number,
+  maxDosesPer24h: number,
+  concentrationMgPerMl: number
+): number {
+  const maxMl = 100;
+  const totalMg = maxMl * concentrationMgPerMl;
+  const eventsPerDay = lockoutHours > 0 ? 24 / lockoutHours : 0;
+  const effectiveEventsPerDay =
+    maxDosesPer24h > 0 ? Math.min(eventsPerDay, maxDosesPer24h) : eventsPerDay;
+  const dailyUsage = bolusMg * effectiveEventsPerDay;
+  if (dailyUsage <= 0) {
+    return 0;
+  }
+  return totalMg / dailyUsage;
+}
+
 function formatDaysForAdvice(days: number): string {
   if (days < 10) {
     return days.toFixed(1);
@@ -147,6 +169,33 @@ function buildMorfineAdvice(state: AppFormState): AdviceBlock {
 function buildMidazolamAdvice(state: AppFormState): AdviceBlock {
   const maxExtra = toNumber(state.midazolam.maxExtraDosesPer24h);
   if (state.midazolam.sedationMode === "intermittent") {
+    if (state.midazolam.deliveryMode === "pump_infusion") {
+      const loadMg = toNumber(state.midazolam.loadingDoseMg);
+      const maintMgPerH = toNumber(state.midazolam.intermittentPumpMaintenanceMgPerHour);
+      const bolusMg = toNumber(state.midazolam.bolusMg);
+      const lockout = toNumber(state.midazolam.lockoutHours);
+      const continueMgPer24hEquivalent = maintMgPerH * 24;
+      const maxDays = calculateMaxDays(
+        continueMgPer24hEquivalent,
+        bolusMg,
+        lockout,
+        state.midazolam.concentrationMgPerMl
+      );
+      const formattedDays = formatDaysForAdvice(maxDays);
+      return {
+        title: "Receptadvies midazolam",
+        lines: [
+          `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml (intermitterende sedatie, via pomp).`,
+          productText.midazolam,
+          `Oplaaddosis: ${formatMedicalNumber(loadMg)} mg s.c.`,
+          `Onderhoudsdosis: ${formatMedicalNumber(maintMgPerH)} mg/uur continu s.c. (richtlijn: range 0,5–2,5 mg/uur).`,
+          `Bij onvoldoende bewustzijnsdaling: ${formatMedicalNumber(bolusMg)} mg s.c. elke ${formatMedicalNumber(lockout)} uur als bolus.`,
+          `Starttijd: ${state.midazolam.intermittentPumpStartTime.trim() || "—"}; stoptijd onderhoud: ${state.midazolam.intermittentPumpStopTime.trim() || "—"}.`,
+          `Max. ${formatMedicalNumber(maxExtra)} extra dose(s) per 24 uur.`,
+          `Ruwe schatting (24u-equivalent onderhoud + maximale bolussen): minimaal ${formattedDays} dagen uit 100 ml.`
+        ]
+      };
+    }
     const schedD = toNumber(state.midazolam.scheduledInjectionDoseMg);
     const schedH = toNumber(state.midazolam.scheduledInjectionIntervalHours);
     const bolusMg = toNumber(state.midazolam.bolusMg);
@@ -163,7 +212,7 @@ function buildMidazolamAdvice(state: AppFormState): AdviceBlock {
     return {
       title: "Receptadvies midazolam",
       lines: [
-        `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml (intermitterend).`,
+        `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml (intermitterend, via injecties).`,
         productText.midazolam,
         `Geplande injectie: ${formatMedicalNumber(schedD)} mg elke ${formatMedicalNumber(schedH)} uur.`,
         `Extra dosis: ${formatMedicalNumber(bolusMg)} mg; minimaal ${formatMedicalNumber(lockout)} uur tussen extra doses.`,
@@ -172,6 +221,30 @@ function buildMidazolamAdvice(state: AppFormState): AdviceBlock {
       ]
     };
   }
+
+  if (state.midazolam.deliveryMode === "injections") {
+    const bolusMg = toNumber(state.midazolam.bolusMg);
+    const lockout = toNumber(state.midazolam.lockoutHours);
+    const maxDays = calculateMaxDaysContinuousInjections(
+      bolusMg,
+      lockout,
+      maxExtra,
+      state.midazolam.concentrationMgPerMl
+    );
+    const formattedDays = formatDaysForAdvice(maxDays);
+    return {
+      title: "Receptadvies midazolam",
+      lines: [
+        `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml (continue sedatie, via injecties).`,
+        productText.midazolam,
+        `Injecties: ${formatMedicalNumber(bolusMg)} mg elke ${formatMedicalNumber(lockout)} uur.`,
+        `Max. ${formatMedicalNumber(maxExtra)} dose(s) per 24 uur.`,
+        `Ruwe schatting: minimaal ${formattedDays} dagen uit 100 ml (afhankelijk van gebruik).`
+      ]
+    };
+  }
+
+  // Default: continue sedatie via pomp (continue infusie)
   const continueMg = toNumber(state.midazolam.continueDoseMgPer24h);
   const bolusMg = toNumber(state.midazolam.bolusMg);
   const lockout = toNumber(state.midazolam.lockoutHours);
@@ -185,7 +258,7 @@ function buildMidazolamAdvice(state: AppFormState): AdviceBlock {
   return {
     title: "Receptadvies midazolam",
     lines: [
-      `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml.`,
+      `Midazolam ${state.midazolam.concentrationMgPerMl} mg/ml (continue sedatie, via pomp).`,
       productText.midazolam,
       `Continue snelheid: ${formatMedicalNumber(continueMg)} mg/24u.`,
       `Bolus: ${formatMedicalNumber(bolusMg)} mg.`,

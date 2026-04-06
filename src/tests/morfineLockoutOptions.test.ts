@@ -6,10 +6,10 @@ import {
 } from "../domain/guidelineLogic/morfineLockoutOptions";
 
 describe("morfineLockoutOptions", () => {
-  it("bevat vaste opties en markeert 4 uur als default", () => {
+  it("bevat vaste opties en markeert 2 uur als default", () => {
     const opts = buildLockoutHourOptions();
     expect(opts.map((o) => o.hours)).toEqual([0.5, 1, 2, 4, 6]);
-    expect(opts.find((o) => o.hours === 4)?.isDefault).toBe(true);
+    expect(opts.find((o) => o.hours === 2)?.isDefault).toBe(true);
     expect(formatLockoutHoursString(0.5)).toBe("0,5");
   });
 

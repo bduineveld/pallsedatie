@@ -6,7 +6,7 @@ import { MorfineTab } from "../components/MorfineTab";
 import { PdfActions } from "../components/PdfActions";
 import { PrescriptionAdvice } from "../components/PrescriptionAdvice";
 import { buildPrescriptionAdvice } from "../domain/prescriptionAdvice/buildAdvice";
-import { isOlderThan70 } from "../domain/validation/age";
+import { isOlderThan60, isOlderThan70 } from "../domain/validation/age";
 import { validateSharedForPdf } from "../domain/validation/formValidation";
 import { getPdfReadiness } from "../domain/validation/pdfReadiness";
 import { previewMorfinePdf, previewMidazolamPdf } from "../pdf/pdfFactory";
@@ -108,11 +108,12 @@ export function App() {
 
   const handleGeneralChange = (general: typeof state.general) => {
     const autoOver70 = isOlderThan70(general.patient.birthDate);
+    const autoOver60 = isOlderThan60(general.patient.birthDate);
     setState({
       ...state,
       general,
       morfine: { ...state.morfine, ageOver70: autoOver70 },
-      midazolam: { ...state.midazolam, ageOver70: autoOver70 }
+      midazolam: { ...state.midazolam, ageOver60: autoOver60 }
     });
   };
 
@@ -122,8 +123,7 @@ export function App() {
       morfine,
       midazolam: {
         ...state.midazolam,
-        ageOver70: morfine.ageOver70,
-        egfrUnder30: morfine.egfrUnder30
+        ageOver60: morfine.ageOver70 || isOlderThan60(state.general.patient.birthDate)
       }
     });
   };

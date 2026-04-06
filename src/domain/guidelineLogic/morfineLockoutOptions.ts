@@ -26,7 +26,7 @@ export function buildLockoutHourOptions(): LockoutHourOption[] {
   return LOCKOUT_PRESET_HOURS.map((hours) => ({
     hours,
     label: formatLockoutHoursString(hours),
-    isDefault: hours === 4
+    isDefault: hours === 2
   }));
 }
 

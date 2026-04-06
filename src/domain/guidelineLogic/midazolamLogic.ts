@@ -2,14 +2,17 @@ import { MidazolamSuggestions } from "../../types/domain";
 
 export interface MidazolamGuidelineInput {
   currentContinueDoseMgPer24h?: number;
-  ageOver70?: boolean;
-  egfrUnder30?: boolean;
-  hepaticImpairment?: boolean;
-  cachexiaOrFrailty?: boolean;
-  chronicBenzodiazepineUse?: boolean;
-  alcoholUse?: boolean;
-  severeAgitationDelirium?: boolean;
-  severeDyspneaAnxiety?: boolean;
+  ageOver60?: boolean;
+  weightUnder60Kg?: boolean;
+  severeRenalOrHepaticImpairment?: boolean;
+  cyp3aInhibitorComedication?: boolean;
+  lowSerumAlbumin?: boolean;
+  valproicAcidUse?: boolean;
+  severeDelirium?: boolean;
+  rapidMetabolism?: boolean;
+  smoking?: boolean;
+  longTermBenzodiazepineTolerance?: boolean;
+  cyp3aInducerComedication?: boolean;
 }
 
 export interface MidazolamAdviceOption {
@@ -21,7 +24,7 @@ export interface MidazolamAdviceOption {
 }
 
 export interface MidazolamAdviceBlock {
-  id: "base" | "lower" | "higher";
+  id: "base" | "lower" | "higher" | "special_lower";
   heading: string;
   adviceLine: string;
   options: [MidazolamAdviceOption, MidazolamAdviceOption];
@@ -30,25 +33,74 @@ export interface MidazolamAdviceBlock {
 export interface MidazolamAdviceSummary {
   hasAnyRiskFactor: boolean;
   isMixedRisk: boolean;
+  /** Standaard indicatie lagere dosering (v.l.n.r. in UI). */
+  selectedStandardLowerFactors: string[];
+  /** Albumine / valproïnezuur (ander doseeradvies). */
+  selectedSpecialLowerFactors: string[];
+  /** Alle lagere factoren (standaard + speciaal), voor gemengde waarschuwing. */
   selectedLowerFactors: string[];
   selectedHigherFactors: string[];
   combinedSelectionLine: string;
   blocks: MidazolamAdviceBlock[];
 }
 
-const lowerFactorDefinitions: Array<{ label: string; isChecked: (input: MidazolamGuidelineInput) => boolean }> = [
-  { label: ">70jr", isChecked: (input) => Boolean(input.ageOver70) },
-  { label: "Slechte nierfunctie (eGFR <30)", isChecked: (input) => Boolean(input.egfrUnder30) },
-  { label: "leverfunctiestoornis (cirrose/leverfalen)", isChecked: (input) => Boolean(input.hepaticImpairment) },
-  { label: "cachexie of fragiele patient", isChecked: (input) => Boolean(input.cachexiaOrFrailty) }
+const standardLowerFactorDefinitions: Array<{
+  label: string;
+  isChecked: (input: MidazolamGuidelineInput) => boolean;
+}> = [
+  { label: "Leeftijd >60 jaar", isChecked: (input) => Boolean(input.ageOver60) },
+  { label: "Gewicht <60 kg", isChecked: (input) => Boolean(input.weightUnder60Kg) },
+  {
+    label: "Ernstige nier- of leverfunctiestoornissen",
+    isChecked: (input) => Boolean(input.severeRenalOrHepaticImpairment)
+  },
+  {
+    label: "Comedicatie met CYP3A remmend effect",
+    isChecked: (input) => Boolean(input.cyp3aInhibitorComedication)
+  }
 ];
 
-const higherFactorDefinitions: Array<{ label: string; isChecked: (input: MidazolamGuidelineInput) => boolean }> = [
-  { label: "chronisch benzodiazepinegebruik", isChecked: (input) => Boolean(input.chronicBenzodiazepineUse) },
-  { label: "alcoholgebruik", isChecked: (input) => Boolean(input.alcoholUse) },
-  { label: "ernstige agitatie/delier", isChecked: (input) => Boolean(input.severeAgitationDelirium) },
-  { label: "ernstige dyspnoe of angst", isChecked: (input) => Boolean(input.severeDyspneaAnxiety) }
+const specialLowerFactorDefinitions: Array<{
+  label: string;
+  isChecked: (input: MidazolamGuidelineInput) => boolean;
+}> = [
+  { label: "Sterk verlaagd serumalbumine", isChecked: (input) => Boolean(input.lowSerumAlbumin) },
+  { label: "Gelijktijdig gebruik valproïnezuur", isChecked: (input) => Boolean(input.valproicAcidUse) }
 ];
+
+const higherFactorDefinitions: Array<{
+  label: string;
+  isChecked: (input: MidazolamGuidelineInput) => boolean;
+}> = [
+  { label: "Ernstig delier", isChecked: (input) => Boolean(input.severeDelirium) },
+  { label: "Snelle metabolisering", isChecked: (input) => Boolean(input.rapidMetabolism) },
+  { label: "Roken", isChecked: (input) => Boolean(input.smoking) },
+  {
+    label: "Eerder langdurig benzodiazepine gebruik met tolerantie als gevolg",
+    isChecked: (input) => Boolean(input.longTermBenzodiazepineTolerance)
+  },
+  {
+    label: "Comedicatie met CYP3A inducerend effect",
+    isChecked: (input) => Boolean(input.cyp3aInducerComedication)
+  }
+];
+
+/** Continue/bolus/lockout voor UI-knoppen (albumine / valproïnezuur), zelfde als `specialLowerBlock`. */
+export const MIDAZOLAM_SPECIAL_LOWER_PRESET_MILD: MidazolamAdviceOption = {
+  buttonLabel: "Lagere dosering (1,5 → 1,0 mg/uur), korter bolus-interval (2 → 1 uur)",
+  loadingDoseMg: 3,
+  continueDoseMgPer24h: 24,
+  bolusMg: 3,
+  lockoutHours: 1
+};
+
+export const MIDAZOLAM_SPECIAL_LOWER_PRESET_STRONG: MidazolamAdviceOption = {
+  buttonLabel: "Lagere dosering (1,5 → 0,5 mg/uur), korter bolus-interval (2 → 0,5 uur)",
+  loadingDoseMg: 2.5,
+  continueDoseMgPer24h: 12,
+  bolusMg: 2.5,
+  lockoutHours: 0.5
+};
 
 function joinWithEn(items: string[]): string {
   if (items.length === 0) {
@@ -64,14 +116,21 @@ function joinWithEn(items: string[]): string {
 }
 
 export function buildMidazolamAdviceSummary(input: MidazolamGuidelineInput): MidazolamAdviceSummary {
-  const selectedLowerFactors = lowerFactorDefinitions
+  const selectedStandardLowerFactors = standardLowerFactorDefinitions
+    .filter((definition) => definition.isChecked(input))
+    .map((definition) => definition.label);
+  const selectedSpecialLowerFactors = specialLowerFactorDefinitions
     .filter((definition) => definition.isChecked(input))
     .map((definition) => definition.label);
   const selectedHigherFactors = higherFactorDefinitions
     .filter((definition) => definition.isChecked(input))
     .map((definition) => definition.label);
 
-  const hasLowerFactors = selectedLowerFactors.length > 0;
+  const selectedLowerFactors = [...selectedStandardLowerFactors, ...selectedSpecialLowerFactors];
+
+  const hasStandardLower = selectedStandardLowerFactors.length > 0;
+  const hasSpecialLower = selectedSpecialLowerFactors.length > 0;
+  const hasLowerFactors = hasStandardLower || hasSpecialLower;
   const hasHigherFactors = selectedHigherFactors.length > 0;
   const hasAnyRiskFactor = hasLowerFactors || hasHigherFactors;
   const isMixedRisk = hasLowerFactors && hasHigherFactors;
@@ -79,7 +138,7 @@ export function buildMidazolamAdviceSummary(input: MidazolamGuidelineInput): Mid
   const combinedSelectionLine = !hasAnyRiskFactor
     ? "Geen risicofactoren."
     : isMixedRisk
-      ? `${joinWithEn(selectedLowerFactors)}, maar tevens ${joinWithEn(selectedHigherFactors)}. Op basis van klinische inschatting zelf een afweging maken en extra evalueren.`
+      ? `${joinWithEn(selectedLowerFactors)}, maar tevens ${joinWithEn(selectedHigherFactors)}. Op basis van klinische inschatting zelf een afweging maken en extra evalueren. Men kan desgewenst ook met een palliatief team of consulent palliatieve zorg overleggen.`
       : `${joinWithEn(hasLowerFactors ? selectedLowerFactors : selectedHigherFactors)}.`;
 
   const baseBlock: MidazolamAdviceBlock = {
@@ -126,6 +185,13 @@ export function buildMidazolamAdviceSummary(input: MidazolamGuidelineInput): Mid
     ]
   };
 
+  const specialLowerBlock: MidazolamAdviceBlock = {
+    id: "special_lower",
+    heading: "Advies bij albumine / valproïnezuur",
+    adviceLine: "Lagere onderhoudsdosering, lagere bolus, korter bolus-interval.",
+    options: [MIDAZOLAM_SPECIAL_LOWER_PRESET_MILD, MIDAZOLAM_SPECIAL_LOWER_PRESET_STRONG]
+  };
+
   const higherBlock: MidazolamAdviceBlock = {
     id: "higher",
     heading: "Advies bij indicatie hogere dosering",
@@ -151,19 +217,29 @@ export function buildMidazolamAdviceSummary(input: MidazolamGuidelineInput): Mid
   const blocks: MidazolamAdviceBlock[] = [];
   if (!hasAnyRiskFactor) {
     blocks.push(baseBlock);
-  } else {
-    if (isMixedRisk) {
-      blocks.push(lowerBlock, baseBlock, higherBlock);
-    } else if (hasLowerFactors) {
+  } else if (isMixedRisk) {
+    if (hasStandardLower) {
       blocks.push(lowerBlock);
-    } else if (hasHigherFactors) {
-      blocks.push(higherBlock);
     }
+    if (hasSpecialLower) {
+      blocks.push(specialLowerBlock);
+    }
+    blocks.push(higherBlock);
+  } else if (hasStandardLower && hasSpecialLower) {
+    blocks.push(lowerBlock, specialLowerBlock);
+  } else if (hasStandardLower) {
+    blocks.push(lowerBlock);
+  } else if (hasSpecialLower) {
+    blocks.push(specialLowerBlock);
+  } else if (hasHigherFactors) {
+    blocks.push(higherBlock);
   }
 
   return {
     hasAnyRiskFactor,
     isMixedRisk,
+    selectedStandardLowerFactors,
+    selectedSpecialLowerFactors,
     selectedLowerFactors,
     selectedHigherFactors,
     combinedSelectionLine,
